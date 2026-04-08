@@ -38,6 +38,10 @@ This repo is designed to be installed by a Claude Code agent. When a user shares
 
 Config lives in `~/.claude/hud/config.json`. All fields are optional — defaults apply for anything omitted.
 
+### Recommended config
+
+Everything on, agents in multiline mode with 5 lines, progress bars enabled.
+
 ```json
 {
   "colorScheme": "default",
@@ -57,12 +61,15 @@ Config lives in `~/.claude/hud/config.json`. All fields are optional — default
     "showCallCounts": true,
     "promptTime": false,
     "agents": true,
-    "agentsFormat": "detailed",
-    "agentsMaxLines": 3,
+    "agentsFormat": "multiline",
+    "agentsMaxLines": 5,
     "lastSkill": true,
     "maxOutputLines": 4
   }
 }
+```
+
+### All options
 ```
 
 ### Color schemes
