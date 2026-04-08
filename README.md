@@ -1,173 +1,85 @@
-# Claude Code HUD
+# claude-code-hud
 
-Standalone statusline overlay for Claude Code. Displays rate limits, context window, session info, git info, active agents and more — live at the bottom of your terminal.
+Statusline overlay for Claude Code — rate limits, context window, session, git, active agents.
 
-No npm dependencies — pure Node.js.
-
----
-
-## ⚡ Install via Claude Code
-
-Paste this repo URL into Claude Code and say **"install this"**. Claude will read these instructions and do everything automatically:
-
-1. Download `statusline.mjs`, `hud-config.mjs`, and `setup.sh` from this repo into `~/.claude/hud/`
-2. Run `bash ~/.claude/hud/setup.sh` (updates `settings.json`, adds `/hud-config` command)
-3. Tell the user to restart Claude Code or run `/reload-plugins`, then use `/hud-config` to customize
-
-> **Claude:** If you are reading this as part of an install request, execute the three steps above now using Bash. Download files from `https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/`. When done, just tell the user: "HUD installed. Run `/hud-config` to set it up." — nothing more.
+No npm dependencies. Node.js only.
 
 ---
 
-## Manual installation
+## Agent instructions
 
-#### 1. Copy files
+This repo is designed to be installed by a Claude Code agent. When a user shares this repo and asks to install it:
 
-```
-~/.claude/hud/
-├── statusline.mjs    ← main renderer
-├── hud-config.mjs    ← interactive configurator
-└── config.json       ← your config (created by /hud-config)
-```
-
-#### 2. Add to `~/.claude/settings.json`
-
-```json
-{
-  "statusLine": {
-    "type": "command",
-    "command": "node $HOME/.claude/hud/statusline.mjs"
-  },
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node -e \"const fs=require('fs'),p=require('os').homedir()+'/.claude/hud/.prompt-time.json';fs.writeFileSync(p,JSON.stringify({time:new Date().toISOString(),cwd:process.cwd()}))\"",
-            "timeout": 2
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-#### 3. Configure the HUD
-
-Run in Claude Code:
-
-```
-/hud-config
-```
-
-The wizard walks you through color scheme and element selection. Config is saved to `~/.claude/hud/config.json`. Run it again any time to change settings.
-
-### Requirements
-
-- Node.js ≥ 18
-- Claude Code with `statusLine` support
-- For `viridis` / `cividis` schemes: truecolor terminal (iTerm2, Kitty, Alacritty, Windows Terminal, VS Code)
+1. Create `~/.claude/hud/` if it doesn't exist
+2. Download into `~/.claude/hud/`:
+   - `https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/statusline.mjs`
+   - `https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/hud-config.mjs`
+   - `https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.sh`
+3. Run `bash ~/.claude/hud/setup.sh`
+4. Tell the user: **"HUD installed. Run `/hud-config` to set it up."** — nothing more.
 
 ---
 
-## Color schemes
+## What gets installed
 
-| Scheme | ok | warning | critical | accent | Notes |
-|---|---|---|---|---|---|
-| `default` | green | yellow | red | cyan | Classic ANSI 16 colors |
-| `colorBlind` | bright cyan | bright yellow | bright magenta | bright blue | Safe for deuteranopia/protanopia (IBM CVD palette) |
-| `highContrast` | bright green | bright yellow | bright magenta | bright cyan | WCAG AA/AAA contrast |
-| `viridis` | teal-green | yellow-green | bright yellow | slate blue | Perceptually uniform, CVD safe, truecolor |
-| `cividis` | olive green | lime | bright yellow | teal | NASA peer-reviewed CVD safe, truecolor |
-
----
-
-## Elements
-
-### Git info line
-
-| Element | Description | Default |
-|---|---|---|
-| `gitRepo` | Repository name | `true` |
-| `gitBranch` | Current branch | `true` |
-| `gitInfoPosition` | `"above"` / `"below"` main HUD | `"above"` |
-| `model` | Model name | `true` |
-| `modelFormat` | `"short"` (Sonnet 4.6) / `"full"` (model ID) | `"short"` |
-| `profile` | Profile name from `CLAUDE_PROFILE_NAME` | `false` |
-
-### Main HUD line
-
-| Element | Description | Default |
-|---|---|---|
-| `rateLimits` | 5h and weekly rate limits | `true` |
-| `sessionHealth` + `showSessionDuration` | Session duration (`session:5m`) | `true` |
-| `contextBar` | Context window usage (`ctx:45%`) | `true` |
-| `useBars` | Progress bar `[████░░░░░░]` instead of percentage only | `true` |
-| `promptTime` | Time of last prompt | `false` |
-| `thinking` | Extended thinking indicator (visible 30s) | `true` |
-| `showCallCounts` | Call counts `🔧42 🤖7 ⚡3` | `true` |
-| `agents` | Active agents | `true` |
-| `agentsFormat` | `"count"` / `"codes"` / `"detailed"` / `"multiline"` | `"detailed"` |
-| `agentsMaxLines` | Max lines in multiline mode | `3` |
-| `lastSkill` | Last used skill | `true` |
-| `backgroundTasks` | Background tasks (requires OMC state) | `false` |
-
-### `agentsFormat` options
-
-| Value | Example |
+| File | Purpose |
 |---|---|
-| `count` | `agents:2` |
-| `codes` | `agents:ea` |
-| `detailed` | `agents:[explore(2m),exec]` |
-| `multiline` | header + one line per agent |
+| `statusline.mjs` | Main renderer — Claude Code calls this for every statusline update |
+| `hud-config.mjs` | Interactive TUI configurator — run in a separate terminal |
+| `setup.sh` | Patches `~/.claude/settings.json` and adds the `/hud-config` command |
 
-### Layout
-
-| Element | Description | Default |
-|---|---|---|
-| `maxOutputLines` | Total max output lines | `4` |
+`setup.sh` adds two things to `settings.json`:
+- `statusLine` → runs `statusline.mjs` on every update
+- `UserPromptSubmit` hook → records prompt timestamps for the "last prompt time" element
 
 ---
 
-## Manual configuration
+## Configuration reference
 
-`~/.claude/hud/config.json` — only include values you want to override, defaults apply for the rest.
+Config lives in `~/.claude/hud/config.json`. All fields are optional — defaults apply for anything omitted.
 
 ```json
 {
   "colorScheme": "default",
   "elements": {
-    "gitRepo":             true,
-    "gitBranch":           true,
-    "gitInfoPosition":     "above",
-    "model":               true,
-    "modelFormat":         "short",
-    "rateLimits":          true,
-    "sessionHealth":       true,
+    "gitRepo": true,
+    "gitBranch": true,
+    "gitInfoPosition": "above",
+    "model": true,
+    "modelFormat": "short",
+    "profile": false,
+    "rateLimits": true,
+    "sessionHealth": true,
     "showSessionDuration": true,
-    "contextBar":          true,
-    "useBars":             true,
-    "thinking":            true,
-    "showCallCounts":      true,
-    "agents":              true,
-    "agentsFormat":        "multiline",
-    "agentsMaxLines":      5,
-    "lastSkill":           true,
-    "maxOutputLines":      4
+    "contextBar": true,
+    "useBars": true,
+    "thinking": true,
+    "showCallCounts": true,
+    "promptTime": false,
+    "agents": true,
+    "agentsFormat": "detailed",
+    "agentsMaxLines": 3,
+    "lastSkill": true,
+    "maxOutputLines": 4
   }
 }
 ```
 
----
+### Color schemes
 
-## Data sources
-
-| Data | Source |
+| Value | Description |
 |---|---|
-| Rate limits, ctx%, session, model | stdin JSON from Claude Code |
-| Git branch / repo | `git` (1s timeout) |
-| Agents, thinking, call counts, skills | Transcript parsing (last 500 KB) |
-| Prompt time | `~/.claude/hud/.prompt-time.json` (UserPromptSubmit hook) |
-| Background tasks | OMC `hud-state.json` (optional) |
+| `default` | Green / yellow / red — standard ANSI |
+| `colorBlind` | Cyan / yellow / magenta — deuteranopia & protanopia safe (IBM CVD palette) |
+| `highContrast` | Bright tier throughout — WCAG AA/AAA |
+| `viridis` | Perceptually uniform, CVD safe — requires truecolor terminal |
+| `cividis` | NASA peer-reviewed CVD safe — requires truecolor terminal |
+
+### `agentsFormat` values
+
+| Value | Output |
+|---|---|
+| `count` | `agents:2` |
+| `codes` | `agents:ea` |
+| `detailed` | `agents:[explore(2m),exec]` |
+| `multiline` | header + one line per agent |
