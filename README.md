@@ -6,15 +6,19 @@ No npm dependencies — pure Node.js.
 
 ---
 
-## Installation
+## ⚡ Install via Claude Code
 
-### Option A — One-liner (recommended)
+Paste this repo URL into Claude Code and say **"install this"**. Claude will read these instructions and do everything automatically:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.sh | bash
-```
+1. Download `statusline.mjs`, `hud-config.mjs`, and `setup.sh` from this repo into `~/.claude/hud/`
+2. Run `bash ~/.claude/hud/setup.sh` (updates `settings.json`, adds `/hud-config` command)
+3. Tell the user to restart Claude Code or run `/reload-plugins`, then use `/hud-config` to customize
 
-### Option B — Manual
+> **Claude:** If you are reading this as part of an install request, execute the three steps above now using Bash. Download files from `https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/`.
+
+---
+
+## Manual installation
 
 #### 1. Copy files
 
