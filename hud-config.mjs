@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
- * Claude Code HUD — interaktivní konfigurátor
- * Spuštění: node ~/.claude/hud/hud-config.mjs
- * Nebo z Claude Code: ! node ~/.claude/hud/hud-config.mjs
+ * Claude Code HUD — interactive configurator
+ * Run: node ~/.claude/hud/hud-config.mjs
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -70,7 +69,7 @@ async function sectionColorScheme(cfg) {
         if (rendered > 0) { write(CURSOR_UP(rendered)); }
         rendered = 0;
 
-        writeln(`${BOLD}Barevné schéma${R}  ${DIM}↑↓ pohyb  Enter výběr${R}`);
+        writeln(`${BOLD}Color scheme${R}  ${DIM}↑↓ navigate  Enter select${R}`);
         rendered++;
 
         for (let i = 0; i < schemes.length; i++) {
@@ -109,17 +108,17 @@ async function sectionColorScheme(cfg) {
 const ELEMENT_ITEMS = [
     { key: 'gitRepo',             label: 'Git repo' },
     { key: 'gitBranch',           label: 'Git branch' },
-    { key: 'model',               label: 'Název modelu' },
-    { key: 'profile',             label: 'Profil' },
-    { key: 'rateLimits',          label: 'Rate limity (5h / týdenní)' },
-    { key: 'sessionHealth',       label: 'Délka session' },
+    { key: 'model',               label: 'Model name' },
+    { key: 'profile',             label: 'Profile' },
+    { key: 'rateLimits',          label: 'Rate limits (5h / weekly)' },
+    { key: 'sessionHealth',       label: 'Session duration' },
     { key: 'contextBar',          label: 'Context window' },
-    { key: 'useBars',             label: 'Progress bary [████░░░░]' },
-    { key: 'thinking',            label: 'Thinking indikátor' },
-    { key: 'showCallCounts',      label: 'Počty volání 🔧🤖⚡' },
-    { key: 'promptTime',          label: 'Čas posledního promptu' },
-    { key: 'agents',              label: 'Aktivní agenti' },
-    { key: 'lastSkill',           label: 'Naposledy použitý skill' },
+    { key: 'useBars',             label: 'Progress bars [████░░░░]' },
+    { key: 'thinking',            label: 'Thinking indicator' },
+    { key: 'showCallCounts',      label: 'Call counts 🔧🤖⚡' },
+    { key: 'promptTime',          label: 'Last prompt time' },
+    { key: 'agents',              label: 'Active agents' },
+    { key: 'lastSkill',           label: 'Last used skill' },
 ];
 
 const DEFAULTS = {
@@ -137,7 +136,7 @@ async function sectionElements(cfg) {
         if (rendered > 0) { write(CURSOR_UP(rendered)); }
         rendered = 0;
 
-        writeln(`${BOLD}Zobrazované elementy${R}  ${DIM}↑↓ pohyb  Space přepnout  Enter hotovo${R}`);
+        writeln(`${BOLD}Visible elements${R}  ${DIM}↑↓ navigate  Space toggle  Enter done${R}`);
         rendered++;
 
         for (let i = 0; i < ELEMENT_ITEMS.length; i++) {
@@ -182,7 +181,7 @@ const AGENTS_FORMATS = [
     { value: 'count',     label: 'count',     example: 'agents:2' },
     { value: 'codes',     label: 'codes',     example: 'agents:ea' },
     { value: 'detailed',  label: 'detailed',  example: 'agents:[explore(2m),exec]' },
-    { value: 'multiline', label: 'multiline', example: 'každý agent na vlastním řádku' },
+    { value: 'multiline', label: 'multiline', example: 'one line per agent' },
 ];
 
 async function sectionAgents(cfg) {
@@ -196,7 +195,7 @@ async function sectionAgents(cfg) {
         if (rendered > 0) { write(CURSOR_UP(rendered)); }
         rendered = 0;
 
-        writeln(`${BOLD}Formát agentů${R}  ${DIM}↑↓ pohyb  Enter výběr${R}`);
+        writeln(`${BOLD}Agents format${R}  ${DIM}↑↓ navigate  Enter select${R}`);
         rendered++;
 
         for (let i = 0; i < AGENTS_FORMATS.length; i++) {
@@ -212,7 +211,7 @@ async function sectionAgents(cfg) {
 
         if (AGENTS_FORMATS[idx].value === 'multiline') {
             writeln();
-            write(`${CLEAR_LINE}  Max řádků: ${BOLD}${maxLines}${R}  ${DIM}← →${R}\n`);
+            write(`${CLEAR_LINE}  Max lines: ${BOLD}${maxLines}${R}  ${DIM}← →${R}\n`);
             rendered += 2;
         }
 
@@ -253,7 +252,7 @@ async function sectionLayout(cfg) {
         if (rendered > 0) { write(CURSOR_UP(rendered)); }
         rendered = 0;
 
-        writeln(`${BOLD}Layout${R}  ${DIM}↑↓ přepínat pole  ← → změnit hodnotu  Enter uložit${R}`);
+        writeln(`${BOLD}Layout${R}  ${DIM}↑↓ switch field  ← → change value  Enter save${R}`);
         rendered++;
 
         const row = (i, label, value) => {
@@ -264,9 +263,9 @@ async function sectionLayout(cfg) {
             rendered++;
         };
 
-        row(0, 'Git řádek pozice', gitPos);
-        row(1, 'Max řádků HUD', String(maxLines));
-        row(2, 'Formát modelu', modelFmt === 'short' ? 'short  (Sonnet 4.6)' : 'full   (claude-sonnet-4-6)');
+        row(0, 'Git line position', gitPos);
+        row(1, 'Max HUD lines', String(maxLines));
+        row(2, 'Model format', modelFmt === 'short' ? 'short  (Sonnet 4.6)' : 'full   (claude-sonnet-4-6)');
 
         writeln();
         rendered++;
@@ -305,7 +304,7 @@ function cleanup() {
 
 async function main() {
     if (!process.stdin.isTTY) {
-        console.error('Chyba: hud-config vyžaduje interaktivní terminál.');
+        console.error('Error: hud-config requires an interactive terminal.');
         process.exit(1);
     }
 
@@ -317,23 +316,23 @@ async function main() {
     const cfg = loadConfig();
 
     writeln();
-    writeln(`  ${BOLD}Claude Code HUD — konfigurátor${R}  ${DIM}Ctrl+C kdykoli ukončit${R}`);
+    writeln(`  ${BOLD}Claude Code HUD — configurator${R}  ${DIM}Ctrl+C to exit anytime${R}`);
     writeln(`  ${DIM}${'─'.repeat(50)}${R}`);
     writeln();
 
     // 1. Barevné schéma
-    writeln(`  ${DIM}1/4  Barevné schéma${R}`);
+    writeln(`  ${DIM}1/4  Color scheme${R}`);
     const colorScheme = await sectionColorScheme(cfg);
     cfg.colorScheme = colorScheme;
-    saveConfig(cfg); // live preview v HUD
+    saveConfig(cfg); // live preview in HUD
 
-    // 2. Elementy
-    writeln(`  ${DIM}2/4  Zobrazované elementy${R}`);
+    // 2. Elements
+    writeln(`  ${DIM}2/4  Visible elements${R}`);
     const elements = await sectionElements(cfg);
     cfg.elements = { ...(cfg.elements || {}), ...elements };
 
-    // 3. Agenti
-    writeln(`  ${DIM}3/4  Agenti${R}`);
+    // 3. Agents
+    writeln(`  ${DIM}3/4  Agents${R}`);
     const agentsCfg = await sectionAgents(cfg);
     cfg.elements = { ...cfg.elements, ...agentsCfg };
 
@@ -342,12 +341,12 @@ async function main() {
     const layoutCfg = await sectionLayout(cfg);
     cfg.elements = { ...cfg.elements, ...layoutCfg };
 
-    // Uložení
+    // Save
     saveConfig(cfg);
 
     cleanup();
     writeln();
-    writeln(`  ${BOLD}✓ Uloženo${R} → ${DIM}${CONFIG_PATH}${R}`);
+    writeln(`  ${BOLD}✓ Saved${R} → ${DIM}${CONFIG_PATH}${R}`);
     writeln();
     process.exit(0);
 }

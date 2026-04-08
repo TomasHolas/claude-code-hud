@@ -1,22 +1,31 @@
 # Claude Code HUD
 
-Standalone statusline overlay pro Claude Code. Zobrazuje rate limity, context window, session, git info, aktivní agenty a další — živě ve spodní části terminálu.
+Standalone statusline overlay for Claude Code. Displays rate limits, context window, session info, git info, active agents and more — live at the bottom of your terminal.
 
-Žádné npm závislosti — čistý Node.js.
+No npm dependencies — pure Node.js.
 
 ---
 
-## Instalace
+## Installation
 
-### 1. Zkopíruj soubory
+### Option A — One-liner (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.sh | bash
+```
+
+### Option B — Manual
+
+#### 1. Copy files
 
 ```
 ~/.claude/hud/
-├── statusline.mjs    ← hlavní renderer
-└── config.json       ← tvoje konfigurace (vytvoří /hud-config)
+├── statusline.mjs    ← main renderer
+├── hud-config.mjs    ← interactive configurator
+└── config.json       ← your config (created by /hud-config)
 ```
 
-### 2. Přidej do `~/.claude/settings.json`
+#### 2. Add to `~/.claude/settings.json`
 
 ```json
 {
@@ -41,88 +50,86 @@ Standalone statusline overlay pro Claude Code. Zobrazuje rate limity, context wi
 }
 ```
 
-### 3. Nakonfiguruj HUD
+#### 3. Configure the HUD
 
-Spusť v Claude Code:
+Run in Claude Code:
 
 ```
 /hud-config
 ```
 
-Průvodce tě provede volbou barevného schématu a výběrem co chceš zobrazovat. Config se uloží do `~/.claude/hud/config.json`. Příkaz můžeš spustit kdykoli znovu a upravit nastavení.
+The wizard walks you through color scheme and element selection. Config is saved to `~/.claude/hud/config.json`. Run it again any time to change settings.
 
-### Požadavky
+### Requirements
 
 - Node.js ≥ 18
-- Claude Code s podporou `statusLine`
-- Pro schémata `viridis` a `cividis`: terminál s truecolor podporou (iTerm2, Kitty, Alacritty, Windows Terminal, VS Code)
+- Claude Code with `statusLine` support
+- For `viridis` / `cividis` schemes: truecolor terminal (iTerm2, Kitty, Alacritty, Windows Terminal, VS Code)
 
 ---
 
-## Barevná schémata
+## Color schemes
 
-Přepínají se přes `colorScheme` v `config.json` nebo přes `/hud-config`.
-
-| Schéma | ok | warning | critical | accent | Poznámka |
+| Scheme | ok | warning | critical | accent | Notes |
 |---|---|---|---|---|---|
-| `default` | zelená | žlutá | červená | cyan | Klasické ANSI 16 barev |
-| `colorBlind` | bright cyan | bright žlutá | bright magenta | bright modrá | Bezpečné pro deuteranopii/protanopii (IBM CVD palette) |
-| `highContrast` | bright zelená | bright žlutá | bright magenta | bright cyan | WCAG AA/AAA kontrast |
-| `viridis` | tyrkys-zelená | žluto-zelená | bright žlutá | slate modrá | Perceptuálně uniformní, CVD safe, truecolor |
-| `cividis` | olivová zelená | limetka | bright žlutá | teal | NASA peer-reviewed CVD safe (deuteranopie, protanopie, tritanopie), truecolor |
+| `default` | green | yellow | red | cyan | Classic ANSI 16 colors |
+| `colorBlind` | bright cyan | bright yellow | bright magenta | bright blue | Safe for deuteranopia/protanopia (IBM CVD palette) |
+| `highContrast` | bright green | bright yellow | bright magenta | bright cyan | WCAG AA/AAA contrast |
+| `viridis` | teal-green | yellow-green | bright yellow | slate blue | Perceptually uniform, CVD safe, truecolor |
+| `cividis` | olive green | lime | bright yellow | teal | NASA peer-reviewed CVD safe, truecolor |
 
 ---
 
-## Elementy
+## Elements
 
-### Git info řádek
+### Git info line
 
-| Element | Popis | Výchozí |
+| Element | Description | Default |
 |---|---|---|
-| `gitRepo` | Název repozitáře | `true` |
-| `gitBranch` | Aktuální větev | `true` |
-| `gitInfoPosition` | `"above"` / `"below"` hlavního HUD | `"above"` |
-| `model` | Název modelu | `true` |
+| `gitRepo` | Repository name | `true` |
+| `gitBranch` | Current branch | `true` |
+| `gitInfoPosition` | `"above"` / `"below"` main HUD | `"above"` |
+| `model` | Model name | `true` |
 | `modelFormat` | `"short"` (Sonnet 4.6) / `"full"` (model ID) | `"short"` |
-| `profile` | Název profilu z `CLAUDE_PROFILE_NAME` | `false` |
+| `profile` | Profile name from `CLAUDE_PROFILE_NAME` | `false` |
 
-### Hlavní HUD řádek
+### Main HUD line
 
-| Element | Popis | Výchozí |
+| Element | Description | Default |
 |---|---|---|
-| `rateLimits` | Rate limity 5h a týdenní | `true` |
-| `sessionHealth` + `showSessionDuration` | Délka session (`session:5m`) | `true` |
-| `contextBar` | Využití context window (`ctx:45%`) | `true` |
-| `useBars` | Progress bar `[████░░░░░░]` místo pouhého procenta | `true` |
-| `promptTime` | Čas posledního promptu | `false` |
-| `thinking` | Indikátor extended thinking (viditelný 30s) | `true` |
-| `showCallCounts` | Počty volání `🔧42 🤖7 ⚡3` | `true` |
-| `agents` | Aktivní agenti | `true` |
+| `rateLimits` | 5h and weekly rate limits | `true` |
+| `sessionHealth` + `showSessionDuration` | Session duration (`session:5m`) | `true` |
+| `contextBar` | Context window usage (`ctx:45%`) | `true` |
+| `useBars` | Progress bar `[████░░░░░░]` instead of percentage only | `true` |
+| `promptTime` | Time of last prompt | `false` |
+| `thinking` | Extended thinking indicator (visible 30s) | `true` |
+| `showCallCounts` | Call counts `🔧42 🤖7 ⚡3` | `true` |
+| `agents` | Active agents | `true` |
 | `agentsFormat` | `"count"` / `"codes"` / `"detailed"` / `"multiline"` | `"detailed"` |
-| `agentsMaxLines` | Max řádků v multiline módu | `3` |
-| `lastSkill` | Naposledy použitý skill | `true` |
-| `backgroundTasks` | Background tasky (vyžaduje OMC state) | `false` |
+| `agentsMaxLines` | Max lines in multiline mode | `3` |
+| `lastSkill` | Last used skill | `true` |
+| `backgroundTasks` | Background tasks (requires OMC state) | `false` |
 
-### `agentsFormat` možnosti
+### `agentsFormat` options
 
-| Hodnota | Ukázka |
+| Value | Example |
 |---|---|
 | `count` | `agents:2` |
 | `codes` | `agents:ea` |
 | `detailed` | `agents:[explore(2m),exec]` |
-| `multiline` | hlavička + řádek pro každého agenta |
+| `multiline` | header + one line per agent |
 
 ### Layout
 
-| Element | Popis | Výchozí |
+| Element | Description | Default |
 |---|---|---|
-| `maxOutputLines` | Max počet řádků celkem | `4` |
+| `maxOutputLines` | Total max output lines | `4` |
 
 ---
 
-## Ruční konfigurace
+## Manual configuration
 
-`~/.claude/hud/config.json` — stačí uvést jen hodnoty které chceš změnit, zbytek se vezme z výchozích.
+`~/.claude/hud/config.json` — only include values you want to override, defaults apply for the rest.
 
 ```json
 {
@@ -145,27 +152,18 @@ Přepínají se přes `colorScheme` v `config.json` nebo přes `/hud-config`.
     "agentsMaxLines":      5,
     "lastSkill":           true,
     "maxOutputLines":      4
-  },
-  "thresholds": {
-    "contextWarning":           70,
-    "contextCompactSuggestion": 80,
-    "contextCritical":          85,
-    "rateLimitWarning":         70,
-    "rateLimitCritical":        90,
-    "sessionWarningMinutes":    60,
-    "sessionCriticalMinutes":   120
   }
 }
 ```
 
 ---
 
-## Zdroje dat
+## Data sources
 
-| Data | Odkud |
+| Data | Source |
 |---|---|
-| Rate limity, ctx%, session, model | stdin JSON od Claude Code |
-| Git branch / repo | `git` (timeout 1s) |
-| Agenti, thinking, call counts, skills | Parsing transkriptu (posledních 500 KB) |
+| Rate limits, ctx%, session, model | stdin JSON from Claude Code |
+| Git branch / repo | `git` (1s timeout) |
+| Agents, thinking, call counts, skills | Transcript parsing (last 500 KB) |
 | Prompt time | `~/.claude/hud/.prompt-time.json` (UserPromptSubmit hook) |
-| Background tasks | OMC `hud-state.json` (volitelné) |
+| Background tasks | OMC `hud-state.json` (optional) |
