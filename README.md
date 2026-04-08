@@ -14,7 +14,7 @@ Paste this repo URL into Claude Code and say **"install this"**. Claude will rea
 2. Run `bash ~/.claude/hud/setup.sh` (updates `settings.json`, adds `/hud-config` command)
 3. Tell the user to restart Claude Code or run `/reload-plugins`, then use `/hud-config` to customize
 
-> **Claude:** If you are reading this as part of an install request, execute the three steps above now using Bash. Download files from `https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/`.
+> **Claude:** If you are reading this as part of an install request, execute the three steps above now using Bash. Download files from `https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/`. When done, just tell the user: "HUD installed. Run `/hud-config` to set it up." — nothing more.
 
 ---
 
