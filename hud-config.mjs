@@ -109,20 +109,20 @@ const ELEMENT_ITEMS = [
     { key: 'gitRepo',             label: 'Git repo' },
     { key: 'gitBranch',           label: 'Git branch' },
     { key: 'model',               label: 'Model name' },
-    { key: 'profile',             label: 'Profile' },
+
     { key: 'rateLimits',          label: 'Rate limits (5h / weekly)' },
     { key: 'sessionHealth',       label: 'Session duration' },
     { key: 'contextBar',          label: 'Context window' },
     { key: 'useBars',             label: 'Progress bars [████░░░░]' },
     { key: 'thinking',            label: 'Thinking indicator' },
-    { key: 'showCallCounts',      label: 'Call counts 🔧🤖⚡' },
     { key: 'promptTime',          label: 'Last prompt time' },
-    { key: 'agents',              label: 'Active agents' },
+    { key: 'showCallCounts',      label: 'Call counts 🔧🤖⚡' },
     { key: 'lastSkill',           label: 'Last used skill' },
+    { key: 'agents',              label: 'Active agents' },
 ];
 
 const DEFAULTS = {
-    gitRepo: true, gitBranch: true, model: true, profile: false,
+    gitRepo: true, gitBranch: true, model: true,
     rateLimits: true, sessionHealth: true, contextBar: true, useBars: true,
     thinking: true, showCallCounts: true, promptTime: false, agents: true, lastSkill: true,
 };
@@ -238,51 +238,7 @@ async function sectionAgents(cfg) {
     });
 }
 
-// ─── SEKCE 4: Profile label ──────────────────────────────────────────────────
-
-async function sectionProfileLabel(cfg) {
-    let value = cfg.profileLabel || '';
-    let rendered = 0;
-
-    const render = () => {
-        if (rendered > 0) write(CURSOR_UP(rendered));
-        rendered = 0;
-        write(`${CLEAR_LINE}${BOLD}Profile label${R}  ${DIM}Type name, Enter save, Esc skip${R}\n`);
-        rendered++;
-        write(`${CLEAR_LINE}  > ${value}\x1b[7m \x1b[27m\n`);  // cursor block
-        rendered++;
-        write(`${CLEAR_LINE}${DIM}  Leave empty to show output_style from Claude Code${R}\n`);
-        rendered++;
-        writeln();
-        rendered++;
-    };
-
-    render();
-
-    return new Promise((resolve) => {
-        const onKey = (buf) => {
-            const key = buf.toString();
-            if (key === '\r' || key === '\n') {
-                process.stdin.off('data', onKey);
-                resolve(value.trim() || null);
-            } else if (key === '\x1b') {
-                process.stdin.off('data', onKey);
-                resolve(cfg.profileLabel || null);
-            } else if (key === '\x03') {
-                cleanup(); process.exit(0);
-            } else if (key === '\x7f' || key === '\b') {
-                value = value.slice(0, -1);
-                render();
-            } else if (key.length === 1 && key.charCodeAt(0) >= 32) {
-                value += key;
-                render();
-            }
-        };
-        process.stdin.on('data', onKey);
-    });
-}
-
-// ─── SEKCE 5: Layout ─────────────────────────────────────────────────────────
+// ─── SEKCE 4: Layout ─────────────────────────────────────────────────────────
 
 async function sectionLayout(cfg) {
     const el = cfg.elements || {};
@@ -365,29 +321,23 @@ async function main() {
     writeln();
 
     // 1. Barevné schéma
-    writeln(`  ${DIM}1/5  Color scheme${R}`);
+    writeln(`  ${DIM}1/4  Color scheme${R}`);
     const colorScheme = await sectionColorScheme(cfg);
     cfg.colorScheme = colorScheme;
     saveConfig(cfg); // live preview in HUD
 
     // 2. Elements
-    writeln(`  ${DIM}2/5  Visible elements${R}`);
+    writeln(`  ${DIM}2/4  Visible elements${R}`);
     const elements = await sectionElements(cfg);
     cfg.elements = { ...(cfg.elements || {}), ...elements };
 
     // 3. Agents
-    writeln(`  ${DIM}3/5  Agents${R}`);
+    writeln(`  ${DIM}3/4  Agents${R}`);
     const agentsCfg = await sectionAgents(cfg);
     cfg.elements = { ...cfg.elements, ...agentsCfg };
 
-    // 4. Profile label
-    writeln(`  ${DIM}4/5  Profile${R}`);
-    const profileLabel = await sectionProfileLabel(cfg);
-    if (profileLabel !== null) cfg.profileLabel = profileLabel;
-    else delete cfg.profileLabel;
-
-    // 5. Layout
-    writeln(`  ${DIM}5/5  Layout${R}`);
+    // 4. Layout
+    writeln(`  ${DIM}4/4  Layout${R}`);
     const layoutCfg = await sectionLayout(cfg);
     cfg.elements = { ...cfg.elements, ...layoutCfg };
 
