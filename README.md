@@ -8,21 +8,13 @@ No npm dependencies. Node.js only.
 
 ## Agent instructions
 
-This repo is designed to be installed by a Claude Code agent. When a user shares this repo and asks to install it, run the appropriate command for the platform:
+This repo is designed to be installed by a Claude Code agent. When a user shares this repo and asks to install it, run this single command via the Bash tool — works on any platform with Node.js, no curl or shell assumptions needed:
 
-**Unix / macOS:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.sh | bash
-```
-
-**Windows (PowerShell) or if Bash is unavailable:**
-```powershell
-irm https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.mjs | node
+node -e "const h=require('https'),fs=require('fs'),os=require('os'),path=require('path'),cp=require('child_process');const dir=path.join(os.homedir(),'.claude','hud');fs.mkdirSync(dir,{recursive:true});const dest=path.join(dir,'setup.mjs');function get(u,cb){h.get(u,r=>{if(r.statusCode>=300&&r.statusCode<400)return get(r.headers.location,cb);let d='';r.on('data',c=>d+=c);r.on('end',()=>cb(d))}).on('error',e=>{console.error(e.message);process.exit(1)})}get('https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.mjs',s=>{fs.writeFileSync(dest,s);cp.execFileSync(process.execPath,[dest],{stdio:'inherit'})})"
 ```
 
 Then tell the user: **"HUD installed. Restart Claude Code or run `/reload-plugins`, then use `/hud-config` to customize."** — nothing more.
-
-> Both installers are self-bootstrapping: they download any missing files automatically.
 
 ---
 
