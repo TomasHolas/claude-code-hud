@@ -510,14 +510,6 @@ function renderModel(stdin, format) {
     return `${dim('model:')}${name}`;
 }
 
-// Profile — priority: config.profileLabel → output_style.name (skip "default") → env var
-function renderProfile(stdin, config) {
-    const label = config.profileLabel
-        || (stdin?.output_style?.name !== 'default' ? stdin?.output_style?.name : null)
-        || process.env.CLAUDE_PROFILE_NAME;
-    if (!label) return null;
-    return bold(`profile:${label}`);
-}
 
 // ─── LAYOUT ──────────────────────────────────────────────────────────────────
 
@@ -557,7 +549,7 @@ async function main() {
     if (el.gitRepo)   gitParts.push(renderGitRepo(cwd));
     if (el.gitBranch) gitParts.push(renderGitBranch(cwd));
     if (el.model)     gitParts.push(renderModel(stdin, el.modelFormat || 'short'));
-    if (el.profile)   gitParts.push(renderProfile(stdin, config));
+
 
     // ── Main HUD line ────────────────────────────────────────────
     const mainParts = [];
