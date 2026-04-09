@@ -8,15 +8,21 @@ No npm dependencies. Node.js only.
 
 ## Agent instructions
 
-This repo is designed to be installed by a Claude Code agent. When a user shares this repo and asks to install it, run this single command:
+This repo is designed to be installed by a Claude Code agent. When a user shares this repo and asks to install it, run the appropriate command for the platform:
 
+**Unix / macOS:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.sh | bash
 ```
 
+**Windows (PowerShell) or if Bash is unavailable:**
+```powershell
+irm https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.mjs | node
+```
+
 Then tell the user: **"HUD installed. Restart Claude Code or run `/reload-plugins`, then use `/hud-config` to customize."** — nothing more.
 
-> The setup script is self-bootstrapping: it downloads any missing files automatically.
+> Both installers are self-bootstrapping: they download any missing files automatically.
 
 ---
 
