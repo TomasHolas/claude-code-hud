@@ -510,9 +510,9 @@ function renderModel(stdin, format) {
     return `${dim('model:')}${name}`;
 }
 
-// Profile
+// Profile — Claude Code sends output_style.name (e.g. "default", or a custom name)
 function renderProfile(stdin) {
-    const name = stdin?.profile_name || process.env.CLAUDE_PROFILE_NAME;
+    const name = stdin?.output_style?.name || process.env.CLAUDE_PROFILE_NAME;
     if (!name) return null;
     return bold(`profile:${name}`);
 }
