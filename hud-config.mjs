@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, statusline.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.2.3';
+const VERSION = '0.2.4';
 
 const HUD_DIR   = join(homedir(), '.claude', 'hud');
 const CONFIG_PATH = join(HUD_DIR, 'config.json');
@@ -119,15 +119,17 @@ const ELEMENT_ITEMS = [
     { key: 'useBars',             label: 'Progress bars [████░░░░]' },
     { key: 'thinking',            label: 'Thinking indicator' },
     { key: 'promptTime',          label: 'Last prompt time' },
-    { key: 'showCallCounts',      label: 'Call counts 🔧🤖⚡' },
+    { key: 'showCallCounts',      label: 'Call counts 🔧🤖⚡🔌' },
     { key: 'lastSkill',           label: 'Last used skill' },
+    { key: 'lastPlugin',          label: 'Last used plugin' },
     { key: 'agents',              label: 'Active agents' },
 ];
 
 const DEFAULTS = {
     gitRepo: true, gitBranch: true, model: true,
     rateLimits: true, sessionHealth: true, contextBar: true, useBars: true,
-    thinking: true, showCallCounts: true, promptTime: false, agents: true, lastSkill: true,
+    thinking: true, showCallCounts: true, promptTime: false, agents: true,
+    lastSkill: true, lastPlugin: true,
 };
 
 async function sectionElements(cfg) {
