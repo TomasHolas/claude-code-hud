@@ -20,6 +20,9 @@ import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
+// Keep in lockstep with /VERSION, hud-config.mjs and setup.mjs — see CLAUDE.md.
+const VERSION = '0.2.0';
+
 // ─── ANSI ────────────────────────────────────────────────────────────────────
 
 const RESET = '\x1b[0m';

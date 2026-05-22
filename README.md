@@ -1,20 +1,33 @@
 # claude-code-hud
 
-Statusline overlay for Claude Code — rate limits, context window, session, git, active agents.
+Statusline overlay for Claude Code — rate limits, context window, session, git, active agents, plugin tracking.
 
 No npm dependencies. Node.js only.
 
+Current version: see [`VERSION`](./VERSION).
+
 ---
 
-## Agent instructions
+## Install / update
 
-This repo is designed to be installed by a Claude Code agent. When a user shares this repo and asks to install it, run this single command via the Bash tool — works on any platform with Node.js, no curl or shell assumptions needed:
+`/install-hud` is **both** install and update. Run it once for the first install, run it again whenever you want the latest version.
+
+The installer:
+- always re-downloads `statusline.mjs` and `hud-config.mjs` from `main`
+- writes `~/.claude/hud/.version` so it can show you `Updating X → Y` next time
+- leaves your `~/.claude/hud/config.json` untouched
+
+### One-liner (no Claude Code)
+
+If you don't have Claude Code yet, install directly:
 
 ```bash
 node -e "const h=require('https'),fs=require('fs'),os=require('os'),path=require('path'),cp=require('child_process');const dir=path.join(os.homedir(),'.claude','hud');fs.mkdirSync(dir,{recursive:true});const dest=path.join(dir,'setup.mjs');function get(u,cb){h.get(u,r=>{if(r.statusCode>=300&&r.statusCode<400)return get(r.headers.location,cb);let d='';r.on('data',c=>d+=c);r.on('end',()=>cb(d))}).on('error',e=>{console.error(e.message);process.exit(1)})}get('https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.mjs',s=>{fs.writeFileSync(dest,s);cp.execFileSync(process.execPath,[dest],{stdio:'inherit'})})"
 ```
 
-Then tell the user: **"HUD installed. Restart Claude Code or run `/reload-plugins`, then use `/hud-config` to customize."** — nothing more.
+### Agent instructions
+
+When a user shares this repo and asks to install it, run the one-liner above via the Bash tool. After it finishes, tell the user: **"HUD installed. Restart Claude Code or run `/reload-plugins`, then use `/hud-config` to customize."**
 
 ---
 
@@ -62,10 +75,20 @@ Everything on, agents in multiline mode with 5 lines, progress bars enabled.
     "agentsFormat": "multiline",
     "agentsMaxLines": 5,
     "lastSkill": true,
+    "lastPlugin": true,
     "maxOutputLines": 4
   }
 }
 ```
+
+### Plugin tracking (v0.2.0+)
+
+The HUD detects calls made to Claude Code plugin assets — both plugin-namespaced skills (`atlassian:triage-issue`) and plugin-provided MCP tools (`mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql`). Two new pieces:
+
+- `🔌N` in the call-counts line — total plugin calls this session
+- `plugin:atlassian(mcp)` — name + kind (`skill` or `mcp`) of the most recent plugin call
+
+Toggle off with `"lastPlugin": false` in config.
 
 ### All options
 ```

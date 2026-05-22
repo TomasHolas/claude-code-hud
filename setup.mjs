@@ -12,6 +12,9 @@ import { get }  from 'node:https';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
+// Keep in lockstep with /VERSION, statusline.mjs and hud-config.mjs — see CLAUDE.md.
+const VERSION = '0.2.0';
+
 const BASE_URL     = 'https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main';
 const HUD_DIR      = join(homedir(), '.claude', 'hud');
 const SETTINGS     = join(homedir(), '.claude', 'settings.json');
@@ -45,17 +48,30 @@ async function main() {
     mkdirSync(HUD_DIR,      { recursive: true });
     mkdirSync(COMMANDS_DIR, { recursive: true });
 
-    // ── 2. Download HUD files if missing ─────────────────────────────────
+    // ── 2. Read previously installed version ──────────────────────────────
+    const versionFile = join(HUD_DIR, '.version');
+    let installedVersion = null;
+    if (existsSync(versionFile)) {
+        try { installedVersion = readFileSync(versionFile, 'utf-8').trim(); } catch {}
+    }
+    if (installedVersion && installedVersion !== VERSION) {
+        console.log(`Updating ${installedVersion} → ${VERSION}`);
+    } else if (installedVersion === VERSION) {
+        console.log(`Already at ${VERSION} — reinstalling`);
+    } else {
+        console.log(`Installing ${VERSION}`);
+    }
+
+    // ── 3. Download HUD files (always overwrite) ──────────────────────────
     for (const f of ['statusline.mjs', 'hud-config.mjs']) {
         const dest = join(HUD_DIR, f);
-        if (!existsSync(dest)) {
-            process.stdout.write(`Downloading ${f}...`);
-            const content = await download(`${BASE_URL}/${f}`);
-            writeFileSync(dest, content, 'utf-8');
-            console.log(` ✓`);
-        }
+        process.stdout.write(`Downloading ${f}...`);
+        const content = await download(`${BASE_URL}/${f}`);
+        writeFileSync(dest, content, 'utf-8');
+        console.log(` ✓`);
     }
-    console.log(`✓ HUD files ready in ${HUD_DIR}`);
+    writeFileSync(versionFile, VERSION + '\n', 'utf-8');
+    console.log(`✓ HUD files ready in ${HUD_DIR} (v${VERSION})`);
 
     // ── 3. Patch settings.json ────────────────────────────────────────────
     if (!existsSync(SETTINGS)) writeFileSync(SETTINGS, '{}', 'utf-8');
@@ -128,11 +144,11 @@ When done, tell the user: **"HUD installed. Restart Claude Code or run \`/reload
 
     // ── 6. Done ───────────────────────────────────────────────────────────
     console.log('');
-    console.log('✓ HUD installed!');
+    console.log(`✓ HUD v${VERSION} installed!`);
     console.log('');
     console.log('  Restart Claude Code (or run /reload-plugins)');
-    console.log('  To configure:  /hud-config');
-    console.log('  To reinstall:  /install-hud');
+    console.log('  To configure:    /hud-config');
+    console.log('  To update later: /install-hud');
     console.log('');
 }
 
