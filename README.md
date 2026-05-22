@@ -64,15 +64,21 @@ Their installed version is in `~/.claude/hud/.version`. Compare with `VERSION` i
 
 ## What gets installed
 
-| File | Purpose |
+| Location | Purpose |
 |---|---|
-| `statusline.mjs` | Main renderer — Claude Code calls this for every statusline update |
-| `hud-config.mjs` | Interactive TUI configurator — run in a separate terminal |
-| `setup.sh` | Patches `~/.claude/settings.json` and adds the `/hud-config` command |
+| `~/.claude/hud/statusline.mjs` | Main renderer — Claude Code calls this for every statusline update |
+| `~/.claude/hud/hud-config.mjs` | Interactive TUI configurator — run in a separate terminal |
+| `~/.claude/hud/setup.mjs` | The installer itself — kept around so future `/update-hud` runs don't need to bootstrap |
+| `~/.claude/hud/.version` | Currently installed version, written after each install/update |
+| `~/.claude/commands/install-hud.md` | Slash command — first-time install |
+| `~/.claude/commands/update-hud.md` | Slash command — pull latest version |
+| `~/.claude/commands/hud-config.md` | Slash command — opens the configurator |
 
-`setup.sh` adds two things to `settings.json`:
-- `statusLine` → runs `statusline.mjs` on every update
+`setup.mjs` also patches `~/.claude/settings.json` to add:
+- `statusLine` → runs `statusline.mjs` on every statusline update
 - `UserPromptSubmit` hook → records prompt timestamps for the "last prompt time" element
+
+Your `~/.claude/hud/config.json` is **never** modified by install or update.
 
 ---
 
