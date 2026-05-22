@@ -107,6 +107,7 @@ const DEFAULT_CONFIG = {
         agentsMaxLines:      3,
         activeSkills:        true,
         lastSkill:           true,
+        lastPlugin:          true,
         backgroundTasks:     true,
         todos:               true,
 
@@ -226,6 +227,8 @@ function parseTranscript(transcriptPath) {
         agentCallCount:    0,
         skillCallCount:    0,
         lastSkill:         null,      // { skill, args }
+        pluginCallCount:   0,
+        lastPlugin:        null,      // { plugin, asset, kind: 'skill' | 'mcp' }
         sessionStart:      null,
     };
 
@@ -286,9 +289,23 @@ function parseTranscript(transcriptPath) {
                     const input = block.input || {};
                     if (input.skill) {
                         result.lastSkill = { skill: input.skill, args: input.args ?? null };
+                        const colonIdx = input.skill.indexOf(':');
+                        if (colonIdx > 0) {
+                            result.pluginCallCount++;
+                            result.lastPlugin = {
+                                plugin: input.skill.slice(0, colonIdx),
+                                asset:  input.skill.slice(colonIdx + 1),
+                                kind:   'skill',
+                            };
+                        }
                     }
                 } else {
                     result.toolCallCount++;
+                    const m = name.match(/^mcp__plugin_([^_]+)_(?:.+?)__(.+)$/);
+                    if (m) {
+                        result.pluginCallCount++;
+                        result.lastPlugin = { plugin: m[1], asset: m[2], kind: 'mcp' };
+                    }
                 }
             }
 
@@ -416,11 +433,12 @@ function renderThinking(active) {
 }
 
 // Call counts — 🔧42 🤖7 ⚡3
-function renderCallCounts(tc, ac, sc) {
+function renderCallCounts(tc, ac, sc, pc) {
     const parts = [];
     if (tc > 0) parts.push(`\u{1F527}${tc}`);
     if (ac > 0) parts.push(`\u{1F916}${ac}`);
     if (sc > 0) parts.push(`\u26A1${sc}`);
+    if (pc > 0) parts.push(`\u{1F50C}${pc}`);
     return parts.length > 0 ? parts.join(' ') : null;
 }
 
@@ -467,6 +485,12 @@ function renderLastSkill(lastSkill) {
     if (!lastSkill) return null;
     const name = lastSkill.skill.split(':').pop() || lastSkill.skill;
     return `${dim('skill:')}${name}`;
+}
+
+// Last plugin — plugin:atlassian(mcp)
+function renderLastPlugin(lastPlugin) {
+    if (!lastPlugin) return null;
+    return `${dim('plugin:')}${cyan(lastPlugin.plugin)}${dim(`(${lastPlugin.kind})`)}`;
 }
 
 // Background tasks — from OMC hud-state.json if present
@@ -539,7 +563,7 @@ async function main() {
     const transcriptPath = stdin?.transcript_path;
     let transcript = null;
     const needsTranscript = el.todos || el.agents || el.thinking || el.showCallCounts
-                         || el.activeSkills || el.lastSkill;
+                         || el.activeSkills || el.lastSkill || el.lastPlugin;
     if (needsTranscript) {
         transcript = parseTranscript(transcriptPath);
     }
@@ -559,8 +583,9 @@ async function main() {
     if (el.contextBar)                        mainParts.push(renderContext(stdin, thr, el.useBars));
     if (el.thinking)                          mainParts.push(renderThinking(transcript?.thinkingActive));
     if (el.promptTime)                        mainParts.push(renderPromptTime());
-    if (el.showCallCounts && transcript)      mainParts.push(renderCallCounts(transcript.toolCallCount, transcript.agentCallCount, transcript.skillCallCount));
+    if (el.showCallCounts && transcript)      mainParts.push(renderCallCounts(transcript.toolCallCount, transcript.agentCallCount, transcript.skillCallCount, transcript.pluginCallCount));
     if ((el.activeSkills || el.lastSkill) && transcript?.lastSkill) mainParts.push(renderLastSkill(transcript.lastSkill));
+    if (el.lastPlugin && transcript?.lastPlugin) mainParts.push(renderLastPlugin(transcript.lastPlugin));
     if (el.backgroundTasks)                  mainParts.push(renderBackgroundTasks(cwd));
 
     // Agents (may produce header + detail lines)
