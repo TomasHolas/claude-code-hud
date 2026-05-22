@@ -10,12 +10,20 @@ Current version: see [`VERSION`](./VERSION).
 
 ## Install / update
 
-`/install-hud` is **both** install and update. Run it once for the first install, run it again whenever you want the latest version.
+Two slash commands, same underlying installer:
+
+| Command | Use when |
+|---|---|
+| `/install-hud` | First time setup |
+| `/update-hud` | Pulling a newer version |
+
+Either one works for either purpose — they're aliases for the same idempotent installer. The naming is purely intent-signaling so you don't have to second-guess whether running `/install-hud` again will break something (it won't).
 
 The installer:
 - always re-downloads `statusline.mjs` and `hud-config.mjs` from `main`
 - writes `~/.claude/hud/.version` so it can show you `Updating X → Y` next time
 - leaves your `~/.claude/hud/config.json` untouched
+- note: GitHub raw has a 5-minute CDN cache, so a just-pushed version may take up to 5 min to be visible
 
 ### One-liner (no Claude Code)
 
@@ -31,7 +39,11 @@ You are a Claude Code agent. A user pointed you at this repo. Pick exactly one b
 
 **Scenario A — user wants to install or update the HUD on their machine**
 
-Run the one-liner above via the Bash tool. It is **idempotent and serves as both install and update** — running it on an already-installed machine simply pulls the latest files and prints `Updating X → Y` or `Already at X — reinstalling`. Never edit `~/.claude/hud/*.mjs` directly to "fix" something — those files are managed by `setup.mjs`.
+If the user already has Claude Code with a previously-installed HUD, prefer the slash command matching their intent: `/install-hud` for first-time setup, `/update-hud` to pull a newer version. They are the same idempotent installer under two names — pick the one the user's wording suggests.
+
+If they don't yet have the HUD installed at all (no `~/.claude/hud/` directory), run the one-liner from the section above via the Bash tool. It works without any prior install.
+
+Never edit `~/.claude/hud/*.mjs` directly to "fix" something — those files are managed by `setup.mjs` and overwritten on every install/update.
 
 After the command finishes, tell the user verbatim: **"HUD installed. Restart Claude Code or run `/reload-plugins`, then use `/hud-config` to customize."** Nothing more.
 

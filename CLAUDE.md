@@ -4,7 +4,7 @@ This is the Claude Code HUD repo. Read this file fully before changing anything.
 
 ## What this repo does
 
-Provides a custom statusline for Claude Code. Users install it via `/install-hud`, which downloads `setup.mjs` and runs it. `setup.mjs` then downloads `statusline.mjs` (the renderer Claude Code invokes on every statusline update) and `hud-config.mjs` (a TUI configurator the user runs separately) into `~/.claude/hud/`.
+Provides a custom statusline for Claude Code. Users install/update it via two slash commands — `/install-hud` and `/update-hud` — both point at the same idempotent installer (`setup.mjs`). The names are intent-signals only; functionally they are identical. `setup.mjs` downloads `statusline.mjs` (the renderer Claude Code invokes on every statusline update) and `hud-config.mjs` (a TUI configurator the user runs separately) into `~/.claude/hud/`, writes `.version` for tracking, and registers both slash commands in `~/.claude/commands/`.
 
 ## Where work happens
 

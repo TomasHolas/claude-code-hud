@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, statusline.mjs and hud-config.mjs — see CLAUDE.md.
-const VERSION = '0.2.1';
+const VERSION = '0.2.2';
 
 const BASE_URL     = 'https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main';
 const HUD_DIR      = join(homedir(), '.claude', 'hud');
@@ -125,24 +125,47 @@ When done, type \`/reload-plugins\` here to apply the changes.
 `, 'utf-8');
     console.log('✓ /hud-config command added');
 
-    // ── 5. /install-hud command ───────────────────────────────────────────
+    // ── 5. /install-hud + /update-hud commands ────────────────────────────
+    // Same idempotent one-liner under two names — pick whichever fits the user's intent.
+    const oneLiner = `node -e "const h=require('https'),fs=require('fs'),os=require('os'),path=require('path'),cp=require('child_process');const dir=path.join(os.homedir(),'.claude','hud');fs.mkdirSync(dir,{recursive:true});const dest=path.join(dir,'setup.mjs');function get(u,cb){h.get(u,r=>{if(r.statusCode>=300&&r.statusCode<400)return get(r.headers.location,cb);let d='';r.on('data',c=>d+=c);r.on('end',()=>cb(d))}).on('error',e=>{console.error(e.message);process.exit(1)})}get('https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.mjs',s=>{fs.writeFileSync(dest,s);cp.execFileSync(process.execPath,[dest],{stdio:'inherit'})})"`;
+
     writeFileSync(join(COMMANDS_DIR, 'install-hud.md'), `\
 ---
-description: Install or update Claude Code HUD overlay
+description: Install Claude Code HUD overlay (also serves as update — see /update-hud)
 allowed-tools: [Bash]
 ---
 
-Install or update Claude Code HUD. Idempotent — safe to re-run anytime to pull the latest version. The installer prints \`Updating X → Y\` (upgrade), \`Already at X — reinstalling\` (same version), or \`Installing X\` (first run).
+Install Claude Code HUD. Idempotent — re-running pulls the latest version. Equivalent to \`/update-hud\`.
 
-Run this command — works on any platform with Node.js:
+The installer prints \`Installing X\` (first run), \`Updating X → Y\` (upgrade), or \`Already at X — reinstalling\` (same version). Run this command — works on any platform with Node.js:
 
 \`\`\`bash
-node -e "const h=require('https'),fs=require('fs'),os=require('os'),path=require('path'),cp=require('child_process');const dir=path.join(os.homedir(),'.claude','hud');fs.mkdirSync(dir,{recursive:true});const dest=path.join(dir,'setup.mjs');function get(u,cb){h.get(u,r=>{if(r.statusCode>=300&&r.statusCode<400)return get(r.headers.location,cb);let d='';r.on('data',c=>d+=c);r.on('end',()=>cb(d))}).on('error',e=>{console.error(e.message);process.exit(1)})}get('https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.mjs',s=>{fs.writeFileSync(dest,s);cp.execFileSync(process.execPath,[dest],{stdio:'inherit'})})"
+${oneLiner}
 \`\`\`
 
 When done, tell the user: **"HUD installed. Restart Claude Code or run \`/reload-plugins\`, then use \`/hud-config\` to customize."** The user's \`config.json\` is never modified by this command.
 `, 'utf-8');
     console.log('✓ /install-hud command added');
+
+    writeFileSync(join(COMMANDS_DIR, 'update-hud.md'), `\
+---
+description: Update Claude Code HUD to the latest version
+allowed-tools: [Bash]
+---
+
+Update Claude Code HUD to the latest version from \`main\`. Same underlying installer as \`/install-hud\` — safe to re-run anytime.
+
+The installer prints \`Updating X → Y\` (upgrade), \`Already at X — reinstalling\` (same version), or \`Installing X\` (if somehow not previously installed). Run this command — works on any platform with Node.js:
+
+\`\`\`bash
+${oneLiner}
+\`\`\`
+
+When done, tell the user: **"HUD updated. Restart Claude Code or run \`/reload-plugins\` to apply."** The user's \`config.json\` is never modified.
+
+Note: GitHub raw has a 5-minute CDN cache, so freshly-pushed versions may take up to 5 min to appear here.
+`, 'utf-8');
+    console.log('✓ /update-hud command added');
 
     // ── 6. Done ───────────────────────────────────────────────────────────
     console.log('');

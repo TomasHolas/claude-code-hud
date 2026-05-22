@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, statusline.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.2.1';
+const VERSION = '0.2.2';
 
 const HUD_DIR   = join(homedir(), '.claude', 'hud');
 const CONFIG_PATH = join(HUD_DIR, 'config.json');
