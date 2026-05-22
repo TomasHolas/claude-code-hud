@@ -27,7 +27,26 @@ node -e "const h=require('https'),fs=require('fs'),os=require('os'),path=require
 
 ### Agent instructions
 
-When a user shares this repo and asks to install it, run the one-liner above via the Bash tool. After it finishes, tell the user: **"HUD installed. Restart Claude Code or run `/reload-plugins`, then use `/hud-config` to customize."**
+You are a Claude Code agent. A user pointed you at this repo. Pick exactly one branch:
+
+**Scenario A — user wants to install or update the HUD on their machine**
+
+Run the one-liner above via the Bash tool. It is **idempotent and serves as both install and update** — running it on an already-installed machine simply pulls the latest files and prints `Updating X → Y` or `Already at X — reinstalling`. Never edit `~/.claude/hud/*.mjs` directly to "fix" something — those files are managed by `setup.mjs`.
+
+After the command finishes, tell the user verbatim: **"HUD installed. Restart Claude Code or run `/reload-plugins`, then use `/hud-config` to customize."** Nothing more.
+
+**Scenario B — user wants to change or extend the HUD itself (this repo)**
+
+Read [`CLAUDE.md`](./CLAUDE.md) first. It defines:
+- the four-place version-bump rule (`/VERSION`, `statusline.mjs`, `hud-config.mjs`, `setup.mjs`)
+- the canonical extension flow (config key → parser → renderer → wire-up → toggle → bump → README)
+- code conventions (no npm deps, stdlib only, ANSI inline)
+
+Do not skip the version bump. Do not edit installed copies in `~/.claude/hud/` — work in the repo.
+
+**Scenario C — user is debugging their installed HUD**
+
+Their installed version is in `~/.claude/hud/.version`. Compare with `VERSION` in this repo to determine if an update would help. Their config is `~/.claude/hud/config.json` — never touched by updates.
 
 ---
 

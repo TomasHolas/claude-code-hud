@@ -1,5 +1,19 @@
 # claude-code-hud — agent instructions
 
+This is the Claude Code HUD repo. Read this file fully before changing anything.
+
+## What this repo does
+
+Provides a custom statusline for Claude Code. Users install it via `/install-hud`, which downloads `setup.mjs` and runs it. `setup.mjs` then downloads `statusline.mjs` (the renderer Claude Code invokes on every statusline update) and `hud-config.mjs` (a TUI configurator the user runs separately) into `~/.claude/hud/`.
+
+## Where work happens
+
+| If you are… | Edit files in… | Don't touch… |
+|---|---|---|
+| Adding a feature to the HUD | this repo (`~/dev/claude-code-hud/` or wherever it's cloned) | `~/.claude/hud/` — those get overwritten by `setup.mjs` |
+| Testing your change locally | this repo, then run `node setup.mjs` to deploy to `~/.claude/hud/` | the user's `config.json` |
+| Helping a user debug their install | their `~/.claude/hud/.version` + `config.json` (read-only) | repo `main` unless they asked |
+
 ## Versioning policy
 
 Every user-visible code change MUST bump the version. Four places hold the version and they MUST stay in lockstep:
