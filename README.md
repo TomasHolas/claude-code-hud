@@ -111,6 +111,7 @@ Everything on, agents in multiline mode with 5 lines, progress bars enabled.
     "agents": true,
     "agentsFormat": "multiline",
     "agentsMaxLines": 5,
+    "agentsShowModel": true,
     "lastSkill": true,
     "lastPlugin": true,
     "maxOutputLines": 4
@@ -146,5 +147,11 @@ Toggle off with `"lastPlugin": false` in config.
 |---|---|
 | `count` | `agents:2` |
 | `codes` | `agents:ea` |
-| `detailed` | `agents:[explore(2m),exec]` |
+| `detailed` | `agents:[explore(Opus 4.8),exec]` |
 | `multiline` | header + one line per agent |
+
+### Sub-agent model (v0.3.0+)
+
+The `detailed` and `multiline` formats show which model each running sub-agent is on (`Opus 4.8`, `Fable 5`, …), read from the per-agent transcript files Claude Code writes under `<session>/subagents/`.
+
+Toggle the model off with `"agentsShowModel": false` (or press `m` in the agents section of `/hud-config`).

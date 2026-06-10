@@ -12,16 +12,16 @@
  *   gitBranch, gitRepo, gitInfoPosition, model, modelFormat, profile,
  *   rateLimits, sessionHealth, showSessionDuration, contextBar, useBars,
  *   promptTime, thinking, showCallCounts, agents, agentsFormat, agentsMaxLines,
- *   todos, activeSkills, lastSkill, backgroundTasks, maxOutputLines
+ *   agentsShowModel, todos, activeSkills, lastSkill, backgroundTasks, maxOutputLines
  */
 
-import { existsSync, readFileSync, statSync, openSync, readSync, closeSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, openSync, readSync, closeSync, readdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, hud-config.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.2.4';
+const VERSION = '0.3.3';
 
 // ─── ANSI ────────────────────────────────────────────────────────────────────
 
@@ -108,6 +108,7 @@ const DEFAULT_CONFIG = {
         agents:              true,
         agentsFormat:        'detailed',  // 'count' | 'codes' | 'detailed' | 'multiline'
         agentsMaxLines:      3,
+        agentsShowModel:     true,   // show each sub-agent's model (detailed/multiline)
         activeSkills:        true,
         lastSkill:           true,
         lastPlugin:          true,
@@ -214,6 +215,102 @@ function readTailLines(path, fileSize, maxBytes) {
 }
 
 /**
+ * Bare model aliases (as passed to the Task tool's `model` option) → full id.
+ * Used only for the brief window before a sub-agent's own transcript records
+ * its actual model id; once it does, that authoritative id wins. Tracks the
+ * latest version per family — update when a newer model becomes the default.
+ */
+const MODEL_ALIASES = {
+    opus:   'claude-opus-4-8',
+    sonnet: 'claude-sonnet-4-6',
+    haiku:  'claude-haiku-4-5',
+    fable:  'claude-fable-5',
+};
+
+/**
+ * Turn a model id into a short display label.
+ *   claude-opus-4-8          → Opus 4.8
+ *   claude-fable-5           → Fable 5
+ *   claude-haiku-4-5-2025…   → Haiku 4.5
+ *   claude-opus-4-8[1m]      → Opus 4.8
+ *   sonnet                   → Sonnet 4.6  (bare alias expanded)
+ */
+function shortModelName(id) {
+    if (!id) return null;
+    const expanded = MODEL_ALIASES[id.toLowerCase()] || id;
+    let s = expanded.replace(/\[1m\]$/, '').replace(/^claude-/, '');
+    s = s.replace(/-\d{6,}$/, '');               // drop trailing date segment
+    const parts  = s.split('-');
+    const family = parts[0] || s;
+    const ver    = parts.slice(1).filter((p) => /^\d{1,2}$/.test(p));
+    const cap    = family.charAt(0).toUpperCase() + family.slice(1);
+    return ver.length ? `${cap} ${ver.join('.')}` : cap;
+}
+
+/**
+ * Read the model id a sub-agent ran on from the head of its transcript file.
+ * The model appears in the first assistant entry; we bound the read to 128 KB.
+ */
+function readAgentModel(filePath) {
+    if (!existsSync(filePath)) return null;
+    let lines;
+    try {
+        const size   = statSync(filePath).size;
+        const length = Math.min(size, 128 * 1024);
+        const fd     = openSync(filePath, 'r');
+        const buf    = Buffer.alloc(length);
+        try { readSync(fd, buf, 0, length, 0); } finally { closeSync(fd); }
+        lines = buf.toString('utf-8').split('\n');
+    } catch { return null; }
+    for (const line of lines) {
+        if (!line.includes('"model"')) continue;
+        try {
+            const o = JSON.parse(line);
+            if (o.message?.model) return o.message.model;
+        } catch { /* partial last line — ignore */ }
+    }
+    return null;
+}
+
+/**
+ * Populate `agent.model` for each running agent by correlating the main
+ * transcript's Task tool-use id with the per-agent transcript files written
+ * to <session>/subagents/. Each agent has a `.meta.json` carrying its
+ * `toolUseId`; the model lives in the matching `agent-<id>.jsonl`.
+ * Early-returns when there are no running agents (the common idle case).
+ */
+function enrichAgentModels(agents, transcriptPath) {
+    if (!agents.length || !transcriptPath) return;
+    const dir = transcriptPath.replace(/\.jsonl$/, '') + '/subagents';
+    if (!existsSync(dir)) return;
+
+    const wanted = new Set(agents.map((a) => a.id));
+    const byToolId = new Map();   // toolUseId → agent file basename
+    let metas;
+    try { metas = readdirSync(dir).filter((f) => f.endsWith('.meta.json')); }
+    catch { return; }
+    for (const mf of metas) {
+        try {
+            const meta = JSON.parse(readFileSync(join(dir, mf), 'utf-8'));
+            if (meta.toolUseId && wanted.has(meta.toolUseId)) {
+                byToolId.set(meta.toolUseId, mf.replace(/\.meta\.json$/, ''));
+            }
+        } catch { /* skip unreadable meta */ }
+        if (byToolId.size === wanted.size) break;
+    }
+
+    for (const a of agents) {
+        const base = byToolId.get(a.id);
+        if (!base) continue;
+        // Prefer the model id from the agent's own transcript (full id → nice
+        // label). Keep any input.model fallback if the file hasn't recorded a
+        // model yet (agent just started — only its prompt is written so far).
+        const m = readAgentModel(join(dir, base + '.jsonl'));
+        if (m) a.model = m;
+    }
+}
+
+/**
  * Parse the transcript JSONL for:
  *  - todos (last TodoWrite input)
  *  - agents (running Task tool calls)
@@ -285,6 +382,7 @@ function parseTranscript(transcriptPath) {
                         description: input.description   ?? null,
                         startTime:   entry.timestamp ? new Date(entry.timestamp) : null,
                         status:      'running',
+                        model:       input.model ?? null,
                     });
                 } else if (name === 'Skill' || name === 'proxy_Skill') {
                     result.skillCallCount++;
@@ -321,18 +419,21 @@ function parseTranscript(transcriptPath) {
     }
 
     result.agents = [...agentMap.values()].filter((a) => a.status === 'running');
+    enrichAgentModels(result.agents, transcriptPath);
     return result;
 }
 
 // ─── ELEMENT RENDERERS ───────────────────────────────────────────────────────
 
 function formatMs(ms) {
-    const mins  = Math.floor(ms / 60_000);
+    const secs  = Math.floor(ms / 1000);
+    const mins  = Math.floor(secs / 60);
     const hours = Math.floor(mins / 60);
     const days  = Math.floor(hours / 24);
     if (days  > 0) return `${days}d${hours % 24}h`;
     if (hours > 0) return `${hours}h${mins % 60}m`;
-    return `${mins}m`;
+    if (mins  > 0) return `${mins}m`;
+    return `${secs}s`;
 }
 
 function rateColor(pct, t) {
@@ -447,7 +548,7 @@ function renderCallCounts(tc, ac, sc, pc) {
 
 
 // Agents — agents:2 | agents:Oes | agents:[explore(2m),exec]
-function renderAgents(agents, format, maxLines) {
+function renderAgents(agents, format, maxLines, showModel) {
     if (!agents || agents.length === 0) return { header: null, detail: [] };
 
     const count = agents.length;
@@ -463,9 +564,9 @@ function renderAgents(agents, format, maxLines) {
 
     if (format === 'detailed') {
         const names = agents.slice(0, 5).map((a) => {
-            const type = a.type.split(':').pop() || a.type;
-            const age  = a.startTime ? formatMs(Date.now() - a.startTime.getTime()) : null;
-            return age ? `${type}(${age})` : type;
+            const type  = a.type.split(':').pop() || a.type;
+            const model = showModel ? shortModelName(a.model) : null;
+            return model ? `${type}(${model})` : type;
         });
         const suffix = count > 5 ? `+${count - 5}` : '';
         const label  = `[${[...names, suffix].filter(Boolean).join(',')}]`;
@@ -475,10 +576,11 @@ function renderAgents(agents, format, maxLines) {
     // multiline
     const header = `${dim('agents:')}${cyan(String(count))}`;
     const detail = agents.slice(0, maxLines || 3).map((a) => {
-        const type = a.type.split(':').pop() || a.type;
-        const desc = a.description ? ` — ${a.description.slice(0, 40)}` : '';
-        const age  = a.startTime ? ` (${formatMs(Date.now() - a.startTime.getTime())})` : '';
-        return `  ${dim('↳')} ${cyan(type)}${age}${dim(desc)}`;
+        const type  = a.type.split(':').pop() || a.type;
+        const desc  = a.description ? ` — ${a.description.slice(0, 40)}` : '';
+        const model = showModel ? shortModelName(a.model) : null;
+        const mtag  = model ? ` ${dim('·')} ${model}` : '';
+        return `  ${dim('↳')} ${cyan(type)}${mtag}${dim(desc)}`;
     });
     return { header, detail };
 }
@@ -593,7 +695,7 @@ async function main() {
 
     // Agents (may produce header + detail lines)
     const agentResult = (el.agents && transcript)
-        ? renderAgents(transcript.agents, el.agentsFormat || 'multiline', el.agentsMaxLines)
+        ? renderAgents(transcript.agents, el.agentsFormat || 'multiline', el.agentsMaxLines, el.agentsShowModel !== false)
         : { header: null, detail: [] };
     if (agentResult.header) mainParts.push(agentResult.header);
 

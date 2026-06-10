@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, statusline.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.2.4';
+const VERSION = '0.3.3';
 
 const HUD_DIR   = join(homedir(), '.claude', 'hud');
 const CONFIG_PATH = join(HUD_DIR, 'config.json');
@@ -185,7 +185,7 @@ async function sectionElements(cfg) {
 const AGENTS_FORMATS = [
     { value: 'count',     label: 'count',     example: 'agents:2' },
     { value: 'codes',     label: 'codes',     example: 'agents:ea' },
-    { value: 'detailed',  label: 'detailed',  example: 'agents:[explore(2m),exec]' },
+    { value: 'detailed',  label: 'detailed',  example: 'agents:[explore(Opus 4.8),exec]' },
     { value: 'multiline', label: 'multiline', example: 'one line per agent' },
 ];
 
@@ -194,13 +194,14 @@ async function sectionAgents(cfg) {
     const cur = el.agentsFormat || 'multiline';
     let idx   = Math.max(0, AGENTS_FORMATS.findIndex(f => f.value === cur));
     let maxLines = el.agentsMaxLines ?? 5;
+    let showModel = el.agentsShowModel !== false;
     let rendered = 0;
 
     const render = () => {
         if (rendered > 0) { write(CURSOR_UP(rendered)); }
         rendered = 0;
 
-        writeln(`${BOLD}Agents format${R}  ${DIM}↑↓ navigate  Enter select${R}`);
+        writeln(`${BOLD}Agents format${R}  ${DIM}↑↓ navigate  m model  Enter select${R}`);
         rendered++;
 
         for (let i = 0; i < AGENTS_FORMATS.length; i++) {
@@ -220,6 +221,12 @@ async function sectionAgents(cfg) {
             rendered += 2;
         }
 
+        if (AGENTS_FORMATS[idx].value === 'detailed' || AGENTS_FORMATS[idx].value === 'multiline') {
+            writeln();
+            write(`${CLEAR_LINE}  Show model: ${BOLD}${showModel ? 'on' : 'off'}${R}  ${DIM}m to toggle${R}\n`);
+            rendered += 2;
+        }
+
         writeln();
         rendered++;
     };
@@ -233,9 +240,10 @@ async function sectionAgents(cfg) {
             else if (key === '\x1b[B' && idx < AGENTS_FORMATS.length - 1) { idx++; render(); }
             else if (key === '\x1b[C' && AGENTS_FORMATS[idx].value === 'multiline') { maxLines = Math.min(10, maxLines + 1); render(); }
             else if (key === '\x1b[D' && AGENTS_FORMATS[idx].value === 'multiline') { maxLines = Math.max(1, maxLines - 1); render(); }
+            else if (key === 'm' || key === 'M') { showModel = !showModel; render(); }
             else if (key === '\r' || key === '\n') {
                 process.stdin.off('data', onKey);
-                resolve({ agentsFormat: AGENTS_FORMATS[idx].value, agentsMaxLines: maxLines });
+                resolve({ agentsFormat: AGENTS_FORMATS[idx].value, agentsMaxLines: maxLines, agentsShowModel: showModel });
             }
             else if (key === '\x03') { cleanup(); process.exit(0); }
         };
