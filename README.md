@@ -99,6 +99,7 @@ Everything on, agents in multiline mode with 5 lines, progress bars enabled.
     "gitInfoPosition": "above",
     "model": true,
     "modelFormat": "short",
+    "cost": true,
     "profile": false,
     "rateLimits": true,
     "sessionHealth": true,
@@ -118,6 +119,12 @@ Everything on, agents in multiline mode with 5 lines, progress bars enabled.
   }
 }
 ```
+
+### Session cost (v0.4.0+)
+
+Shows the running session cost on the git/model line, right next to the model name (`cost:$1.23`, always green). The value is `cost.total_cost_usd` exactly as Claude Code reports it — in **USD**.
+
+Toggle off with `"cost": false` in config (or in `/hud-config`).
 
 ### Plugin tracking (v0.2.0+)
 

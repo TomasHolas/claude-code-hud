@@ -10,7 +10,7 @@
  *
  * Configurable elements (set in config.json under "elements"):
  *   gitBranch, gitRepo, gitInfoPosition, model, modelFormat, profile,
- *   rateLimits, sessionHealth, showSessionDuration, contextBar, useBars,
+ *   rateLimits, sessionHealth, showSessionDuration, cost, contextBar, useBars,
  *   promptTime, thinking, showCallCounts, agents, agentsFormat, agentsMaxLines,
  *   agentsShowModel, todos, activeSkills, lastSkill, backgroundTasks, maxOutputLines
  */
@@ -21,7 +21,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, hud-config.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.3.3';
+const VERSION = '0.4.0';
 
 // ─── ANSI ────────────────────────────────────────────────────────────────────
 
@@ -100,6 +100,7 @@ const DEFAULT_CONFIG = {
         rateLimits:          true,
         sessionHealth:       true,
         showSessionDuration: true,
+        cost:                true,
         contextBar:          true,
         useBars:             true,   // show progress bar inside ctx
         promptTime:          false,
@@ -493,6 +494,13 @@ function renderSession(stdin, thresholds) {
     return `session:${color}${mins}m${RESET}`;
 }
 
+// Session cost — cost:$1.23 (USD, as reported by Claude Code)
+function renderCost(stdin) {
+    const usd = stdin?.cost?.total_cost_usd;
+    if (usd == null) return null;
+    return `cost:${C.ok}$${usd.toFixed(2)}${RESET}`;
+}
+
 // Context window — ctx:67% or ctx:[████░░░░░░]67%
 function renderContext(stdin, thresholds, useBars) {
     const pct = stdin?.context_window?.used_percentage;
@@ -678,6 +686,7 @@ async function main() {
     if (el.gitRepo)   gitParts.push(renderGitRepo(cwd));
     if (el.gitBranch) gitParts.push(renderGitBranch(cwd));
     if (el.model)     gitParts.push(renderModel(stdin, el.modelFormat || 'short'));
+    if (el.cost)      gitParts.push(renderCost(stdin));
 
 
     // ── Main HUD line ────────────────────────────────────────────

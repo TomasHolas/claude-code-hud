@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, statusline.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.3.3';
+const VERSION = '0.4.0';
 
 const HUD_DIR   = join(homedir(), '.claude', 'hud');
 const CONFIG_PATH = join(HUD_DIR, 'config.json');
@@ -112,6 +112,7 @@ const ELEMENT_ITEMS = [
     { key: 'gitRepo',             label: 'Git repo' },
     { key: 'gitBranch',           label: 'Git branch' },
     { key: 'model',               label: 'Model name' },
+    { key: 'cost',                label: 'Session cost ($)' },
 
     { key: 'rateLimits',          label: 'Rate limits (5h / weekly)' },
     { key: 'sessionHealth',       label: 'Session duration' },
@@ -126,7 +127,7 @@ const ELEMENT_ITEMS = [
 ];
 
 const DEFAULTS = {
-    gitRepo: true, gitBranch: true, model: true,
+    gitRepo: true, gitBranch: true, model: true, cost: true,
     rateLimits: true, sessionHealth: true, contextBar: true, useBars: true,
     thinking: true, showCallCounts: true, promptTime: false, agents: true,
     lastSkill: true, lastPlugin: true,
