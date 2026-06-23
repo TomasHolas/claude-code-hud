@@ -80,5 +80,72 @@ The canonical extension flow:
 5. Optionally add a toggle step in `hud-config.mjs`
 6. Bump VERSION in all four places
 7. Update README
+8. Draft an announcement post (see below)
 
 See the plugin tracking feature (`lastPlugin`, `pluginCallCount`) as a worked example.
+
+## Announcement post (after every feature add or fix)
+
+After any user-visible feature is added or fixed (i.e. any VERSION bump), draft a short
+announcement post the user can paste into Teams / social. Save it as Markdown to
+`~/dev/outputs/claude-code-hud-v<VERSION>-post.md`.
+
+Style — match the established template:
+- Open with `🚀 **claude-code-hud v<VERSION> is out!**`
+- Lead with the user-facing benefit (what problem it solves / what you now see), not the implementation
+- Show a concrete statusline snippet in a fenced code block when it helps
+- One light line on how it fits / that it's toggleable
+- **Already have the HUD?** → `Just run /update-hud in Claude Code.` + the ~5-min GitHub CDN cache heads-up
+- **New here?** → link to [TomasHolas/claude-code-hud](https://github.com/TomasHolas/claude-code-hud), "point Claude at the repo and tell it to install the HUD"
+- Close with `Happy building! 🛠️`
+- Emoji are allowed **in this post only** (it's user-facing marketing copy, not repo source)
+
+Reference examples (literal post text, fenced):
+
+Example — v0.3.3 (sub-agent model in the agents element):
+
+````markdown
+🚀 **claude-code-hud v0.3.3 is out!**
+
+If you run sub-agents in Claude Code, your statusline now tells you which model each one is on — Opus 4.8, Sonnet 4.6, Haiku 4.5, Fable 5 — live, as they run:
+
+```
+agents:4
+  ↳ general-purpose · Opus 4.8   — Review backend robustness
+  ↳ general-purpose · Sonnet 4.6 — Review modularity
+  ↳ general-purpose · Haiku 4.5  — Review frontend code
+  ↳ general-purpose · Fable 5    — Write release notes
+```
+
+No more guessing whether that long-running agent is burning Opus or quietly humming on Haiku. 🎯
+
+**Already have the HUD?** Just run `/update-hud` in Claude Code. That's it.
+_(Heads-up: GitHub's CDN caches for ~5 min, so if it says "already up to date" right after release, give it a few minutes.)_
+
+**New here?** 👉 [TomasHolas/claude-code-hud](https://github.com/TomasHolas/claude-code-hud) — point Claude at the repo and tell it to install the HUD. It'll know what to do.
+
+Happy building! 🛠️
+````
+
+Example — v0.4.0 (session cost on the model line):
+
+````markdown
+🚀 **claude-code-hud v0.4.0 is out!**
+
+Ever finished a long Claude Code session and wondered what it actually cost you? Now your statusline tells you — live, right next to the model name:
+
+```
+model:Opus 4.8 | cost:$7.42
+```
+
+It reads the running session cost straight from Claude Code (`total_cost_usd`) and keeps it in view the whole time, so there's no more guessing and no digging through logs after the fact. 💸
+
+Small addition, but the kind you end up glancing at constantly. It sits quietly on the first line and you can toggle it off any time via `/hud-config`.
+
+**Already have the HUD?** Just run `/update-hud` in Claude Code. That's it.
+_(Heads-up: GitHub's CDN caches for ~5 min, so if it says "already up to date" right after release, give it a few minutes.)_
+
+**New here?** 👉 [TomasHolas/claude-code-hud](https://github.com/TomasHolas/claude-code-hud) — Claude Code HUD overlay: statusline with rate limits, context window, sub-agent models, and now session cost. Point Claude at the repo and tell it to install the HUD. It'll know what to do.
+
+Happy building! 🛠️
+````
