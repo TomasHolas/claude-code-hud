@@ -126,6 +126,18 @@ Shows the running session cost on the git/model line, right next to the model na
 
 Toggle off with `"cost": false` in config (or in `/hud-config`).
 
+### Session duration (v0.5.0+)
+
+Shows how long the session has been running (`session:5m`), colored by age (green → yellow → red). The value auto-groups into the largest two units so it stays readable over long sessions — minutes is the smallest unit, days the largest (no months):
+
+| Duration | Output |
+|---|---|
+| under 1 hour | `5m` |
+| 1 hour – 1 day | `2h13m` |
+| 1 day+ | `19d1h` |
+
+Toggle off with `"showSessionDuration": false` in config (or in `/hud-config`).
+
 ### Plugin tracking (v0.2.0+)
 
 The HUD detects calls made to Claude Code plugin assets — both plugin-namespaced skills (`atlassian:triage-issue`) and plugin-provided MCP tools (`mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql`). Two new pieces:

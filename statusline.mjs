@@ -21,7 +21,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, hud-config.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 
 // ─── ANSI ────────────────────────────────────────────────────────────────────
 
@@ -483,15 +483,21 @@ function renderRateLimits(stdin, thresholds, useBars) {
     return parts.length > 0 ? parts.join(' ') : null;
 }
 
-// Session duration — session:5m (colored by age)
+// Session duration — session:5m / session:2h13m / session:19d4h (colored by age)
 function renderSession(stdin, thresholds) {
     const ms = stdin?.cost?.total_duration_ms;
     if (ms == null) return null;
     const mins  = Math.floor(ms / 60_000);
+    const hours = Math.floor(mins / 60);
+    const days  = Math.floor(hours / 24);
+    // Auto-group into the largest two units; minutes is the smallest unit shown.
+    const label = days  > 0 ? `${days}d${hours % 24}h`
+                : hours > 0 ? `${hours}h${mins % 60}m`
+                :             `${mins}m`;
     const color = mins >= thresholds.sessionCriticalMinutes ? C.critical
                 : mins >= thresholds.sessionWarningMinutes  ? C.warning
                 : C.ok;
-    return `session:${color}${mins}m${RESET}`;
+    return `session:${color}${label}${RESET}`;
 }
 
 // Session cost — cost:$1.23 (USD, as reported by Claude Code)
