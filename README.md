@@ -93,6 +93,7 @@ Everything on, agents in multiline mode with 5 lines, progress bars enabled.
 ```json
 {
   "colorScheme": "default",
+  "modelScheme": "orange",
   "elements": {
     "gitRepo": true,
     "gitBranch": true,
@@ -159,6 +160,20 @@ Toggle off with `"lastPlugin": false` in config.
 | `highContrast` | Bright tier throughout — WCAG AA/AAA |
 | `viridis` | Perceptually uniform, CVD safe — requires truecolor terminal |
 | `cividis` | NASA peer-reviewed CVD safe — requires truecolor terminal |
+
+### Model scheme (v0.6.0+)
+
+Colors the model name on the git/model line (`model:Opus 4.8`). Set top-level `"modelScheme"` in config, or pick it in the **Model scheme** step of `/hud-config` (live preview per option).
+
+| Value | Color |
+|---|---|
+| `plain` | terminal default (no color) |
+| `orange` | 256-color orange — **default** |
+| `coral` | Claude brand `#D97757` — requires truecolor terminal |
+| `magenta` | basic ANSI magenta |
+| `brightMagenta` | bright ANSI magenta |
+| `blue` | bright ANSI blue |
+| `white` | bright ANSI white |
 
 ### `agentsFormat` values
 

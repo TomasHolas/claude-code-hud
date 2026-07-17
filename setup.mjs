@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, statusline.mjs and hud-config.mjs — see CLAUDE.md.
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 
 const BASE_URL     = 'https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main';
 const HUD_DIR      = join(homedir(), '.claude', 'hud');

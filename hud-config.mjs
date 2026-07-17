@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, statusline.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 
 const HUD_DIR   = join(homedir(), '.claude', 'hud');
 const CONFIG_PATH = join(HUD_DIR, 'config.json');
@@ -39,6 +39,27 @@ const SCHEME_LABELS = {
     highContrast: 'High Contrast   ',
     viridis:      'Viridis         ',
     cividis:      'Cividis (NASA)  ',
+};
+
+// Model name colors — mirror of statusline.mjs MODEL_COLORS
+const MODEL_COLORS = {
+    plain:         '',
+    orange:        '\x1b[38;5;208m',
+    coral:         '\x1b[38;2;217;119;87m',
+    magenta:       '\x1b[35m',
+    brightMagenta: '\x1b[95m',
+    blue:          '\x1b[94m',
+    white:         '\x1b[97m',
+};
+
+const MODEL_COLOR_LABELS = {
+    plain:         'Plain           ',
+    orange:        'Orange          ',
+    coral:         'Coral (Claude)  ',
+    magenta:       'Magenta         ',
+    brightMagenta: 'Bright magenta  ',
+    blue:          'Bright blue     ',
+    white:         'Bright white    ',
 };
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
@@ -106,7 +127,52 @@ async function sectionColorScheme(cfg) {
     });
 }
 
-// ─── SEKCE 2: Elementy ───────────────────────────────────────────────────────
+// ─── SEKCE 2: Model scheme ───────────────────────────────────────────────────
+
+async function sectionModelScheme(cfg) {
+    const colors = Object.keys(MODEL_COLORS);
+    let idx = Math.max(0, colors.indexOf(cfg.modelScheme || 'orange'));
+    let rendered = 0;
+
+    const render = () => {
+        if (rendered > 0) { write(CURSOR_UP(rendered)); }
+        rendered = 0;
+
+        writeln(`${BOLD}Model scheme${R}  ${DIM}↑↓ navigate  Enter select${R}`);
+        rendered++;
+
+        for (let i = 0; i < colors.length; i++) {
+            const c   = colors[i];
+            const col = MODEL_COLORS[c];
+            const sel = i === idx;
+            const radio  = sel ? `${BOLD}●${R}` : `${DIM}○${R}`;
+            const label  = sel ? `${BOLD}${MODEL_COLOR_LABELS[c]}${R}` : `${DIM}${MODEL_COLOR_LABELS[c]}${R}`;
+            const preview = `${DIM}model:${R}${col}Opus 4.8${R}`;
+            write(`${CLEAR_LINE}  ${radio} ${label}  ${preview}\n`);
+            rendered++;
+        }
+        writeln();
+        rendered++;
+    };
+
+    render();
+
+    return new Promise((resolve) => {
+        const onKey = (buf) => {
+            const key = buf.toString();
+            if (key === '\x1b[A' && idx > 0) { idx--; render(); }
+            else if (key === '\x1b[B' && idx < colors.length - 1) { idx++; render(); }
+            else if (key === '\r' || key === '\n') {
+                process.stdin.off('data', onKey);
+                resolve(colors[idx]);
+            }
+            else if (key === '\x03') { cleanup(); process.exit(0); }
+        };
+        process.stdin.on('data', onKey);
+    });
+}
+
+// ─── SEKCE 3: Elementy ───────────────────────────────────────────────────────
 
 const ELEMENT_ITEMS = [
     { key: 'gitRepo',             label: 'Git repo' },
@@ -181,7 +247,7 @@ async function sectionElements(cfg) {
     });
 }
 
-// ─── SEKCE 3: Formát agentů ──────────────────────────────────────────────────
+// ─── SEKCE 4: Formát agentů ──────────────────────────────────────────────────
 
 const AGENTS_FORMATS = [
     { value: 'count',     label: 'count',     example: 'agents:2' },
@@ -252,7 +318,7 @@ async function sectionAgents(cfg) {
     });
 }
 
-// ─── SEKCE 4: Layout ─────────────────────────────────────────────────────────
+// ─── SEKCE 5: Layout ─────────────────────────────────────────────────────────
 
 async function sectionLayout(cfg) {
     const el = cfg.elements || {};
@@ -335,23 +401,29 @@ async function main() {
     writeln();
 
     // 1. Barevné schéma
-    writeln(`  ${DIM}1/4  Color scheme${R}`);
+    writeln(`  ${DIM}1/5  Color scheme${R}`);
     const colorScheme = await sectionColorScheme(cfg);
     cfg.colorScheme = colorScheme;
     saveConfig(cfg); // live preview in HUD
 
-    // 2. Elements
-    writeln(`  ${DIM}2/4  Visible elements${R}`);
+    // 2. Model scheme
+    writeln(`  ${DIM}2/5  Model scheme${R}`);
+    const modelScheme = await sectionModelScheme(cfg);
+    cfg.modelScheme = modelScheme;
+    saveConfig(cfg); // live preview in HUD
+
+    // 3. Elements
+    writeln(`  ${DIM}3/5  Visible elements${R}`);
     const elements = await sectionElements(cfg);
     cfg.elements = { ...(cfg.elements || {}), ...elements };
 
-    // 3. Agents
-    writeln(`  ${DIM}3/4  Agents${R}`);
+    // 4. Agents
+    writeln(`  ${DIM}4/5  Agents${R}`);
     const agentsCfg = await sectionAgents(cfg);
     cfg.elements = { ...cfg.elements, ...agentsCfg };
 
-    // 4. Layout
-    writeln(`  ${DIM}4/4  Layout${R}`);
+    // 5. Layout
+    writeln(`  ${DIM}5/5  Layout${R}`);
     const layoutCfg = await sectionLayout(cfg);
     cfg.elements = { ...cfg.elements, ...layoutCfg };
 

@@ -21,7 +21,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, hud-config.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.5.0';
+const VERSION = '0.6.0';
 
 // ─── ANSI ────────────────────────────────────────────────────────────────────
 
@@ -73,6 +73,17 @@ const PALETTES = {
     },
 };
 
+// Model name colors — loaded from config.modelScheme
+const MODEL_COLORS = {
+    plain:         '',                        // terminal default (no color)
+    orange:        '\x1b[38;5;208m',          // 256-color orange
+    coral:         '\x1b[38;2;217;119;87m',   // Claude brand #D97757 — requires truecolor
+    magenta:       '\x1b[35m',
+    brightMagenta: '\x1b[95m',
+    blue:          '\x1b[94m',
+    white:         '\x1b[97m',
+};
+
 // Active palette — set in main() after config is loaded
 let C = PALETTES.default;
 
@@ -87,6 +98,7 @@ const HUD_DIR = join(homedir(), '.claude', 'hud');
 /** Mirrors OMC's 'focused' preset — the current active configuration. */
 const DEFAULT_CONFIG = {
     colorScheme: 'default',   // 'default' | 'colorBlind' | 'highContrast'
+    modelScheme: 'orange',    // key of MODEL_COLORS — color of the model name
     elements: {
         // Git info line (above or below main HUD)
         gitBranch:       true,
@@ -646,11 +658,12 @@ function renderGitRepo(cwd) {
 }
 
 // Model — model:Sonnet 4.6
-function renderModel(stdin, format) {
+function renderModel(stdin, format, scheme) {
     const m = stdin?.model;
     if (!m) return null;
-    const name = format === 'full' ? m.id : (m.display_name || m.id);
-    return `${dim('model:')}${name}`;
+    const name  = format === 'full' ? m.id : (m.display_name || m.id);
+    const color = MODEL_COLORS[scheme] ?? MODEL_COLORS.orange;
+    return `${dim('model:')}${color ? `${color}${name}${RESET}` : name}`;
 }
 
 
@@ -691,7 +704,7 @@ async function main() {
     const gitParts = [];
     if (el.gitRepo)   gitParts.push(renderGitRepo(cwd));
     if (el.gitBranch) gitParts.push(renderGitBranch(cwd));
-    if (el.model)     gitParts.push(renderModel(stdin, el.modelFormat || 'short'));
+    if (el.model)     gitParts.push(renderModel(stdin, el.modelFormat || 'short', config.modelScheme));
     if (el.cost)      gitParts.push(renderCost(stdin));
 
 
