@@ -3,8 +3,11 @@
  * Claude Code HUD — cross-platform installer (Node.js)
  * Usage:
  *   Any platform:  node setup.mjs
- *   Unix / macOS:  curl -fsSL https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.mjs | node
- *   Windows (PS):  irm https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.mjs | node
+ *   Unix / macOS:  curl -fsSL https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.mjs | node --input-type=module
+ *   Windows (PS):  irm https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.mjs | node --input-type=module
+ *
+ * The --input-type=module flag is required when piping: this file uses
+ * top-level `import`, and stdin defaults to CommonJS on Node < 22.7.
  */
 
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -13,7 +16,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, statusline.mjs and hud-config.mjs — see CLAUDE.md.
-const VERSION = '0.6.0';
+const VERSION = '0.8.0';
 
 const BASE_URL     = 'https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main';
 const HUD_DIR      = join(homedir(), '.claude', 'hud');
@@ -26,7 +29,7 @@ const hudFwd = HUD_DIR.replace(/\\/g, '/');
 function download(url) {
     return new Promise((resolve, reject) => {
         get(url, (res) => {
-            if (res.statusCode === 301 || res.statusCode === 302) {
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
                 return download(res.headers.location).then(resolve).catch(reject);
             }
             if (res.statusCode !== 200) {
@@ -73,7 +76,7 @@ async function main() {
     writeFileSync(versionFile, VERSION + '\n', 'utf-8');
     console.log(`✓ HUD files ready in ${HUD_DIR} (v${VERSION})`);
 
-    // ── 3. Patch settings.json ────────────────────────────────────────────
+    // ── 4. Patch settings.json ────────────────────────────────────────────
     if (!existsSync(SETTINGS)) writeFileSync(SETTINGS, '{}', 'utf-8');
 
     let cfg = {};
@@ -108,7 +111,9 @@ async function main() {
     writeFileSync(SETTINGS, JSON.stringify(cfg, null, 2) + '\n', 'utf-8');
     console.log('✓ settings.json updated');
 
-    // ── 4. /hud-config command ────────────────────────────────────────────
+    // ── 5. /hud-config command ────────────────────────────────────────────
+    // Absolute path baked in at install time: `~` is not expanded by
+    // cmd.exe/PowerShell, so a tilde path breaks the command on Windows.
     writeFileSync(join(COMMANDS_DIR, 'hud-config.md'), `\
 ---
 description: HUD overlay configurator
@@ -118,14 +123,14 @@ allowed-tools: []
 Tell the user to run this command in a new terminal:
 
 \`\`\`
-node ~/.claude/hud/hud-config.mjs
+node "${hudFwd}/hud-config.mjs"
 \`\`\`
 
 When done, type \`/reload-plugins\` here to apply the changes.
 `, 'utf-8');
     console.log('✓ /hud-config command added');
 
-    // ── 5. /install-hud + /update-hud commands ────────────────────────────
+    // ── 6. /install-hud + /update-hud commands ────────────────────────────
     // Same idempotent one-liner under two names — pick whichever fits the user's intent.
     const oneLiner = `node -e "const h=require('https'),fs=require('fs'),os=require('os'),path=require('path'),cp=require('child_process');const dir=path.join(os.homedir(),'.claude','hud');fs.mkdirSync(dir,{recursive:true});const dest=path.join(dir,'setup.mjs');function get(u,cb){h.get(u,r=>{if(r.statusCode>=300&&r.statusCode<400)return get(r.headers.location,cb);let d='';r.on('data',c=>d+=c);r.on('end',()=>cb(d))}).on('error',e=>{console.error(e.message);process.exit(1)})}get('https://raw.githubusercontent.com/TomasHolas/claude-code-hud/main/setup.mjs',s=>{fs.writeFileSync(dest,s);cp.execFileSync(process.execPath,[dest],{stdio:'inherit'})})"`;
 
@@ -167,7 +172,7 @@ Note: GitHub raw has a 5-minute CDN cache, so freshly-pushed versions may take u
 `, 'utf-8');
     console.log('✓ /update-hud command added');
 
-    // ── 6. Done ───────────────────────────────────────────────────────────
+    // ── 7. Done ───────────────────────────────────────────────────────────
     console.log('');
     console.log(`✓ HUD v${VERSION} installed!`);
     console.log('');

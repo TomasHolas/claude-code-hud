@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, statusline.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.6.0';
+const VERSION = '0.8.0';
 
 const HUD_DIR   = join(homedir(), '.claude', 'hud');
 const CONFIG_PATH = join(HUD_DIR, 'config.json');
@@ -24,7 +24,7 @@ const CLEAR_LINE  = '\x1b[2K\r';
 const HIDE_CURSOR = '\x1b[?25l';
 const SHOW_CURSOR = '\x1b[?25h';
 
-// Palety — zrcadlo ze statusline.mjs
+// Palettes — mirror of statusline.mjs
 const PALETTES = {
     default:      { ok: '\x1b[32m', warning: '\x1b[33m', critical: '\x1b[31m', accent: '\x1b[36m' },
     colorBlind:   { ok: '\x1b[96m', warning: '\x1b[93m', critical: '\x1b[95m', accent: '\x1b[94m' },
@@ -34,7 +34,7 @@ const PALETTES = {
 };
 
 const SCHEME_LABELS = {
-    default:      'Klasická        ',
+    default:      'Classic         ',
     colorBlind:   'Color Blind     ',
     highContrast: 'High Contrast   ',
     viridis:      'Viridis         ',
@@ -78,11 +78,7 @@ function saveConfig(cfg) {
 function write(s) { process.stdout.write(s); }
 function writeln(s = '') { write(s + '\n'); }
 
-function clearLines(n) {
-    for (let i = 0; i < n; i++) write(CLEAR_LINE + (i < n - 1 ? CURSOR_UP(1) : ''));
-}
-
-// ─── SEKCE 1: Barevné schéma ─────────────────────────────────────────────────
+// ─── SECTION 1: Color scheme ─────────────────────────────────────────────────
 
 async function sectionColorScheme(cfg) {
     const schemes = Object.keys(PALETTES);
@@ -127,7 +123,7 @@ async function sectionColorScheme(cfg) {
     });
 }
 
-// ─── SEKCE 2: Model scheme ───────────────────────────────────────────────────
+// ─── SECTION 2: Model scheme ─────────────────────────────────────────────────
 
 async function sectionModelScheme(cfg) {
     const colors = Object.keys(MODEL_COLORS);
@@ -172,7 +168,7 @@ async function sectionModelScheme(cfg) {
     });
 }
 
-// ─── SEKCE 3: Elementy ───────────────────────────────────────────────────────
+// ─── SECTION 3: Elements ─────────────────────────────────────────────────────
 
 const ELEMENT_ITEMS = [
     { key: 'gitRepo',             label: 'Git repo' },
@@ -247,7 +243,58 @@ async function sectionElements(cfg) {
     });
 }
 
-// ─── SEKCE 4: Formát agentů ──────────────────────────────────────────────────
+// ─── SECTION 4: Call counts ──────────────────────────────────────────────────
+
+const CORAL_256 = '\x1b[38;5;173m';
+const CALL_COUNT_STYLES = [
+    { value: 'emoji', label: 'Emoji           ', preview: '\u{1F527}61 \u{1F916}3 \u26A11 \u{1F50C}1' },
+    { value: 'nerd',  label: 'Nerd Font       ', preview: `${CORAL_256}\u{f1064} \x1b[0m61 ${CORAL_256}\u{f06a9} \x1b[0m3 ${CORAL_256}\u{f0241} \x1b[0m1 ${CORAL_256}\u{f0553} \x1b[0m1` },
+];
+
+async function sectionCallCounts(cfg) {
+    const el  = cfg.elements || {};
+    let idx   = Math.max(0, CALL_COUNT_STYLES.findIndex((s) => s.value === (el.callCountsStyle || 'emoji')));
+    let rendered = 0;
+
+    const render = () => {
+        if (rendered > 0) { write(CURSOR_UP(rendered)); }
+        rendered = 0;
+
+        writeln(`${BOLD}Call-count icons${R}  ${DIM}↑↓ navigate  Enter select${R}`);
+        rendered++;
+
+        for (let i = 0; i < CALL_COUNT_STYLES.length; i++) {
+            const s   = CALL_COUNT_STYLES[i];
+            const sel = i === idx;
+            const radio = sel ? `${BOLD}●${R}` : `${DIM}○${R}`;
+            const label = sel ? `${BOLD}${s.label}${R}` : `${DIM}${s.label}${R}`;
+            write(`${CLEAR_LINE}  ${radio} ${label}  ${s.preview}\n`);
+            rendered++;
+        }
+        write(`${CLEAR_LINE}  ${DIM}Nerd Font style needs a Nerd Font installed (see README);${R}\n`);
+        write(`${CLEAR_LINE}  ${DIM}individual icons are overridable via callCountIcons in config.json.${R}\n`);
+        writeln();
+        rendered += 3;
+    };
+
+    render();
+
+    return new Promise((resolve) => {
+        const onKey = (buf) => {
+            const key = buf.toString();
+            if (key === '\x1b[A' && idx > 0) { idx--; render(); }
+            else if (key === '\x1b[B' && idx < CALL_COUNT_STYLES.length - 1) { idx++; render(); }
+            else if (key === '\r' || key === '\n') {
+                process.stdin.off('data', onKey);
+                resolve(CALL_COUNT_STYLES[idx].value);
+            }
+            else if (key === '\x03') { cleanup(); process.exit(0); }
+        };
+        process.stdin.on('data', onKey);
+    });
+}
+
+// ─── SECTION 5: Agents format ────────────────────────────────────────────────
 
 const AGENTS_FORMATS = [
     { value: 'count',     label: 'count',     example: 'agents:2' },
@@ -318,7 +365,7 @@ async function sectionAgents(cfg) {
     });
 }
 
-// ─── SEKCE 5: Layout ─────────────────────────────────────────────────────────
+// ─── SECTION 6: Layout ───────────────────────────────────────────────────────
 
 async function sectionLayout(cfg) {
     const el = cfg.elements || {};
@@ -400,30 +447,36 @@ async function main() {
     writeln(`  ${DIM}${'─'.repeat(50)}${R}`);
     writeln();
 
-    // 1. Barevné schéma
-    writeln(`  ${DIM}1/5  Color scheme${R}`);
+    // 1. Color scheme
+    writeln(`  ${DIM}1/6  Color scheme${R}`);
     const colorScheme = await sectionColorScheme(cfg);
     cfg.colorScheme = colorScheme;
     saveConfig(cfg); // live preview in HUD
 
     // 2. Model scheme
-    writeln(`  ${DIM}2/5  Model scheme${R}`);
+    writeln(`  ${DIM}2/6  Model scheme${R}`);
     const modelScheme = await sectionModelScheme(cfg);
     cfg.modelScheme = modelScheme;
     saveConfig(cfg); // live preview in HUD
 
     // 3. Elements
-    writeln(`  ${DIM}3/5  Visible elements${R}`);
+    writeln(`  ${DIM}3/6  Visible elements${R}`);
     const elements = await sectionElements(cfg);
     cfg.elements = { ...(cfg.elements || {}), ...elements };
 
-    // 4. Agents
-    writeln(`  ${DIM}4/5  Agents${R}`);
+    // 4. Call-count icons
+    writeln(`  ${DIM}4/6  Call-count icons${R}`);
+    const callCountsStyle = await sectionCallCounts(cfg);
+    cfg.elements = { ...cfg.elements, callCountsStyle };
+    saveConfig(cfg); // live preview in HUD
+
+    // 5. Agents
+    writeln(`  ${DIM}5/6  Agents${R}`);
     const agentsCfg = await sectionAgents(cfg);
     cfg.elements = { ...cfg.elements, ...agentsCfg };
 
-    // 5. Layout
-    writeln(`  ${DIM}5/5  Layout${R}`);
+    // 6. Layout
+    writeln(`  ${DIM}6/6  Layout${R}`);
     const layoutCfg = await sectionLayout(cfg);
     cfg.elements = { ...cfg.elements, ...layoutCfg };
 

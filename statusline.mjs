@@ -9,24 +9,23 @@
  * Prompts: ~/.claude/hud/.prompt-time.json  (written by UserPromptSubmit hook)
  *
  * Configurable elements (set in config.json under "elements"):
- *   gitBranch, gitRepo, gitInfoPosition, model, modelFormat, profile,
+ *   gitBranch, gitRepo, gitInfoPosition, model, modelFormat,
  *   rateLimits, sessionHealth, showSessionDuration, cost, contextBar, useBars,
  *   promptTime, thinking, showCallCounts, agents, agentsFormat, agentsMaxLines,
- *   agentsShowModel, todos, activeSkills, lastSkill, backgroundTasks, maxOutputLines
+ *   agentsShowModel, lastSkill, lastPlugin, backgroundTasks, maxOutputLines
  */
 
 import { existsSync, readFileSync, statSync, openSync, readSync, closeSync, readdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
-import { join } from 'node:path';
+import { join, basename } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, hud-config.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.6.0';
+const VERSION = '0.8.0';
 
 // ─── ANSI ────────────────────────────────────────────────────────────────────
 
 const RESET = '\x1b[0m';
-const BOLD  = '\x1b[1m';
 const DIM   = '\x1b[2m';
 
 // Color palettes — loaded from config.colorScheme
@@ -87,7 +86,6 @@ const MODEL_COLORS = {
 // Active palette — set in main() after config is loaded
 let C = PALETTES.default;
 
-const bold = (s) => `${BOLD}${s}${RESET}`;
 const dim  = (s) => `${DIM}${s}${RESET}`;
 const cyan = (s) => `${C.accent}${s}${RESET}`;
 
@@ -97,7 +95,7 @@ const HUD_DIR = join(homedir(), '.claude', 'hud');
 
 /** Mirrors OMC's 'focused' preset — the current active configuration. */
 const DEFAULT_CONFIG = {
-    colorScheme: 'default',   // 'default' | 'colorBlind' | 'highContrast'
+    colorScheme: 'default',   // 'default' | 'colorBlind' | 'highContrast' | 'viridis' | 'cividis'
     modelScheme: 'orange',    // key of MODEL_COLORS — color of the model name
     elements: {
         // Git info line (above or below main HUD)
@@ -106,7 +104,6 @@ const DEFAULT_CONFIG = {
         gitInfoPosition: 'above',   // 'above' | 'below'
         model:           true,
         modelFormat:     'short',   // 'short' (display_name) | 'full' (id)
-        profile:         true,
 
         // Main HUD line
         rateLimits:          true,
@@ -118,15 +115,15 @@ const DEFAULT_CONFIG = {
         promptTime:          false,
         thinking:            true,
         showCallCounts:      true,
+        callCountsStyle:     'emoji',     // 'emoji' | 'nerd' (nerd requires a Nerd Font installed — see README)
+        callCountIcons:      {},          // nerd-style overrides, hex codepoints: { tools, agents, skills, plugins }
         agents:              true,
         agentsFormat:        'detailed',  // 'count' | 'codes' | 'detailed' | 'multiline'
         agentsMaxLines:      3,
         agentsShowModel:     true,   // show each sub-agent's model (detailed/multiline)
-        activeSkills:        true,
         lastSkill:           true,
         lastPlugin:          true,
         backgroundTasks:     true,
-        todos:               true,
 
         // Layout
         maxOutputLines: 4,
@@ -202,7 +199,7 @@ function getGitRepoName(cwd) {
     const url = git('remote get-url origin', cwd);
     if (!url) return null;
     const m = url.match(/\/([^/]+?)(?:\.git)?$/) || url.match(/:([^/]+?)(?:\.git)?$/);
-    return m ? m[1].replace(/\.git$/, '') : null;
+    return m ? m[1] : null;
 }
 
 // ─── TRANSCRIPT PARSING ──────────────────────────────────────────────────────
@@ -325,16 +322,14 @@ function enrichAgentModels(agents, transcriptPath) {
 
 /**
  * Parse the transcript JSONL for:
- *  - todos (last TodoWrite input)
  *  - agents (running Task tool calls)
  *  - thinking state (recent thinking blocks)
- *  - call counts (tool / agent / skill)
- *  - last activated skill
+ *  - call counts (tool / agent / skill / plugin)
+ *  - last activated skill / plugin
  */
 function parseTranscript(transcriptPath) {
     const result = {
-        todos:             [],
-        agents:            [],        // { id, type, description, startTime, status }
+        agents:            [],        // { id, type, description, status, model }
         thinkingActive:    false,
         toolCallCount:     0,
         agentCallCount:    0,
@@ -342,7 +337,6 @@ function parseTranscript(transcriptPath) {
         lastSkill:         null,      // { skill, args }
         pluginCallCount:   0,
         lastPlugin:        null,      // { plugin, asset, kind: 'skill' | 'mcp' }
-        sessionStart:      null,
     };
 
     if (!transcriptPath || !existsSync(transcriptPath)) return result;
@@ -366,11 +360,6 @@ function parseTranscript(transcriptPath) {
         let entry;
         try { entry = JSON.parse(line); } catch { continue; }
 
-        // Session start timestamp
-        if (!result.sessionStart && entry.timestamp) {
-            result.sessionStart = new Date(entry.timestamp);
-        }
-
         const content = entry.message?.content;
         if (!Array.isArray(content)) continue;
 
@@ -393,7 +382,6 @@ function parseTranscript(transcriptPath) {
                         id:          block.id,
                         type:        input.subagent_type ?? 'unknown',
                         description: input.description   ?? null,
-                        startTime:   entry.timestamp ? new Date(entry.timestamp) : null,
                         status:      'running',
                         model:       input.model ?? null,
                     });
@@ -470,7 +458,7 @@ function renderRateLimits(stdin, thresholds, useBars) {
     const parts = [];
 
     const renderBucket = (label, dimLabel, bucket) => {
-        if (!bucket) return null;
+        if (!bucket || bucket.used_percentage == null) return null;
         const pct      = Math.round(Math.min(100, Math.max(0, bucket.used_percentage)));
         const color    = rateColor(pct, thresholds);
         const resetMs  = bucket.resets_at ? bucket.resets_at * 1000 - Date.now() : 0;
@@ -562,13 +550,38 @@ function renderThinking(active) {
     return `${C.accent}thinking${RESET}`;
 }
 
-// Call counts — 🔧42 🤖7 ⚡3
-function renderCallCounts(tc, ac, sc, pc) {
+// Call counts — tools, agents, skills, plugins
+// 'emoji': wrench/robot/bolt/plug emoji (default, works everywhere)
+// 'nerd':  Material Design Icons glyphs from the Nerd Font supplementary
+//          plane (tools f1064, robot f06a9, flash f0241, usb f0553) — the
+//          BMP FA range proved unreliable via macOS font fallback. Requires
+//          a Nerd Font installed (not necessarily as the terminal font).
+//          Trailing space so the glyph doesn't crowd the count. Individual
+//          glyphs are overridable via elements.callCountIcons (hex
+//          codepoints, e.g. { "tools": "f1323" }) — see README.
+const CALL_COUNT_ICONS = {
+    emoji: ['\u{1F527}', '\u{1F916}', '\u26A1', '\u{1F50C}'],
+    nerd:  ['\u{f1064} ', '\u{f06a9} ', '\u{f0241} ', '\u{f0553} '],
+};
+const CALL_COUNT_KEYS = ['tools', 'agents', 'skills', 'plugins'];
+
+function renderCallCounts(tc, ac, sc, pc, style, overrides) {
+    let icons = CALL_COUNT_ICONS[style] ?? CALL_COUNT_ICONS.emoji;
+    if (style === 'nerd' && overrides) {
+        icons = CALL_COUNT_KEYS.map((key, i) => {
+            const cp = parseInt(overrides[key], 16);
+            return cp > 0 && cp <= 0x10FFFF ? String.fromCodePoint(cp) + ' ' : icons[i];
+        });
+    }
+    // Nerd glyphs are plain text, so they can be ANSI-tinted (emoji carry
+    // their own colors and ignore tinting). Coral, Claude brand #D97757,
+    // as 256-color 173 so it also works without truecolor support.
+    const tint  = style === 'nerd' ? (x) => `\x1b[38;5;173m${x}${RESET}` : (x) => x;
     const parts = [];
-    if (tc > 0) parts.push(`\u{1F527}${tc}`);
-    if (ac > 0) parts.push(`\u{1F916}${ac}`);
-    if (sc > 0) parts.push(`\u26A1${sc}`);
-    if (pc > 0) parts.push(`\u{1F50C}${pc}`);
+    if (tc > 0) parts.push(`${tint(icons[0])}${tc}`);
+    if (ac > 0) parts.push(`${tint(icons[1])}${ac}`);
+    if (sc > 0) parts.push(`${tint(icons[2])}${sc}`);
+    if (pc > 0) parts.push(`${tint(icons[3])}${pc}`);
     return parts.length > 0 ? parts.join(' ') : null;
 }
 
@@ -635,8 +648,8 @@ function renderBackgroundTasks(cwd) {
         try {
             const state = JSON.parse(readFileSync(p, 'utf-8'));
             const tasks = (state.backgroundTasks || []).filter((t) => t.status === 'running');
-            if (tasks.length === 0) return null;
-            return `${dim('bg:')}${C.warning}${tasks.length}${RESET}`;
+            // A file with no running tasks must not mask the other candidate
+            if (tasks.length > 0) return `${dim('bg:')}${C.warning}${tasks.length}${RESET}`;
         } catch {
             continue;
         }
@@ -654,6 +667,11 @@ function renderGitBranch(cwd) {
 function renderGitRepo(cwd) {
     const repo = getGitRepoName(cwd);
     if (!repo) return null;
+    const root   = git('rev-parse --show-toplevel', cwd);
+    const folder = basename(root || cwd);
+    if (folder && folder.toLowerCase() !== repo.toLowerCase()) {
+        return `${dim('repo:')}${cyan(repo)} ${dim(`(${folder})`)}`;
+    }
     return `${dim('repo:')}${cyan(repo)}`;
 }
 
@@ -670,7 +688,6 @@ function renderModel(stdin, format, scheme) {
 // ─── LAYOUT ──────────────────────────────────────────────────────────────────
 
 const SEPARATOR      = `${DIM} | ${RESET}`;
-const PLAIN_SEP      = ' | ';
 
 function joinParts(parts) {
     return parts.filter(Boolean).join(SEPARATOR);
@@ -694,8 +711,8 @@ async function main() {
     // Parse transcript (once, shared by multiple elements)
     const transcriptPath = stdin?.transcript_path;
     let transcript = null;
-    const needsTranscript = el.todos || el.agents || el.thinking || el.showCallCounts
-                         || el.activeSkills || el.lastSkill || el.lastPlugin;
+    const needsTranscript = el.agents || el.thinking || el.showCallCounts
+                         || el.lastSkill || el.lastPlugin;
     if (needsTranscript) {
         transcript = parseTranscript(transcriptPath);
     }
@@ -716,8 +733,8 @@ async function main() {
     if (el.contextBar)                        mainParts.push(renderContext(stdin, thr, el.useBars));
     if (el.thinking)                          mainParts.push(renderThinking(transcript?.thinkingActive));
     if (el.promptTime)                        mainParts.push(renderPromptTime());
-    if (el.showCallCounts && transcript)      mainParts.push(renderCallCounts(transcript.toolCallCount, transcript.agentCallCount, transcript.skillCallCount, transcript.pluginCallCount));
-    if ((el.activeSkills || el.lastSkill) && transcript?.lastSkill) mainParts.push(renderLastSkill(transcript.lastSkill));
+    if (el.showCallCounts && transcript)      mainParts.push(renderCallCounts(transcript.toolCallCount, transcript.agentCallCount, transcript.skillCallCount, transcript.pluginCallCount, el.callCountsStyle, el.callCountIcons));
+    if (el.lastSkill && transcript?.lastSkill) mainParts.push(renderLastSkill(transcript.lastSkill));
     if (el.lastPlugin && transcript?.lastPlugin) mainParts.push(renderLastPlugin(transcript.lastPlugin));
     if (el.backgroundTasks)                  mainParts.push(renderBackgroundTasks(cwd));
 

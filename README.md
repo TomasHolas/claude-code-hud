@@ -101,7 +101,6 @@ Everything on, agents in multiline mode with 5 lines, progress bars enabled.
     "model": true,
     "modelFormat": "short",
     "cost": true,
-    "profile": false,
     "rateLimits": true,
     "sessionHealth": true,
     "showSessionDuration": true,
@@ -139,6 +138,16 @@ Shows how long the session has been running (`session:5m`), colored by age (gree
 
 Toggle off with `"showSessionDuration": false` in config (or in `/hud-config`).
 
+### Folder name next to repo (v0.7.0+)
+
+The `repo:` element shows the git remote's repo name. When the checkout folder is named differently than the repo (e.g. a second working copy `VAC_WIP/` cloned from the `VAC` repo), the folder name is appended so you always know which copy you're in:
+
+```
+repo:VAC (VAC_WIP) | branch:main
+```
+
+The folder shown is the repo root (the clone directory), even when you're deep in a subdirectory. When folder and repo names match (case-insensitive), nothing extra is shown. Part of the `gitRepo` element — no new config key.
+
 ### Plugin tracking (v0.2.0+)
 
 The HUD detects calls made to Claude Code plugin assets — both plugin-namespaced skills (`atlassian:triage-issue`) and plugin-provided MCP tools (`mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql`). Two new pieces:
@@ -149,7 +158,81 @@ The HUD detects calls made to Claude Code plugin assets — both plugin-namespac
 Toggle off with `"lastPlugin": false` in config.
 
 ### All options
+
+Top-level keys:
+
+| Key | Default | Meaning |
+|---|---|---|
+| `colorScheme` | `default` | HUD palette — see Color schemes below |
+| `modelScheme` | `orange` | Color of the model name — see Model scheme below |
+| `elements` | — | Per-element toggles and options, see table |
+| `thresholds` | — | Warning/critical percentages, see table |
+| `contextLimitWarning` | — | Extra warning line near context limit, see below |
+
+`elements`:
+
+| Key | Default | Meaning |
+|---|---|---|
+| `gitRepo` | `true` | Repo name from the `origin` remote; appends the checkout folder when it differs (v0.7.0+) |
+| `gitBranch` | `true` | Current git branch |
+| `gitInfoPosition` | `"above"` | Git/model line `"above"` or `"below"` the main HUD line |
+| `model` | `true` | Model name |
+| `modelFormat` | `"short"` | `"short"` (display name) or `"full"` (model id) |
+| `cost` | `true` | Session cost in USD |
+| `rateLimits` | `true` | 5-hour and weekly usage with reset countdown |
+| `sessionHealth` | `true` | Session duration, colored by age — both this **and** `showSessionDuration` must be on |
+| `showSessionDuration` | `true` | See `sessionHealth` |
+| `contextBar` | `true` | Context window usage |
+| `useBars` | `true` | Progress bars inside rate limits and context |
+| `promptTime` | `false` | Time of the last prompt (needs the `UserPromptSubmit` hook the installer adds) |
+| `thinking` | `true` | "thinking" indicator while the model reasons |
+| `showCallCounts` | `true` | Tool / agent / skill / plugin call counters |
+| `callCountsStyle` | `"emoji"` | Counter icons: `"emoji"` (wrench/robot/bolt/plug, works everywhere) or `"nerd"` (coral-tinted monochrome glyphs — see below) |
+| `callCountIcons` | `{}` | Per-icon overrides for the nerd style, hex codepoints — see below |
+| `agents` | `true` | Running sub-agents |
+| `agentsFormat` | `"detailed"` | `count` / `codes` / `detailed` / `multiline` — see below |
+| `agentsMaxLines` | `3` | Max agent lines in `multiline` format |
+| `agentsShowModel` | `true` | Show each sub-agent's model (v0.3.0+) |
+| `lastSkill` | `true` | Most recently invoked skill |
+| `lastPlugin` | `true` | Most recent plugin call (v0.2.0+) |
+| `backgroundTasks` | `true` | Running OMC background tasks (from `hud-state.json`, if present) |
+| `maxOutputLines` | `4` | Hard cap on HUD lines; overflow collapses into `... (+N lines)` |
+
+`thresholds` (all percentages except the session minutes):
+
+| Key | Default | Effect |
+|---|---|---|
+| `contextWarning` | `70` | Context turns yellow |
+| `contextCompactSuggestion` | `80` | Context shows `COMPRESS?` |
+| `contextCritical` | `85` | Context turns red, shows `CRITICAL` |
+| `rateLimitWarning` | `70` | Rate limit turns yellow |
+| `rateLimitCritical` | `90` | Rate limit turns red |
+| `sessionWarningMinutes` | `60` | Session duration turns yellow |
+| `sessionCriticalMinutes` | `120` | Session duration turns red |
+
+`contextLimitWarning`: `{ "threshold": 80, "autoCompact": false }` — when context usage crosses the threshold, an extra line `Context at N% — consider /compact` is appended.
+
+### Call-count icon styles (v0.8.0+)
+
+`"callCountsStyle": "nerd"` swaps the emoji counters for monochrome [Nerd Font](https://www.nerdfonts.com/) glyphs — pick it in the **Call-count icons** step of `/hud-config` (live preview) or set it in config.
+
+Requirement: **a Nerd Font must be installed on the system** — it does *not* have to be your terminal font. The OS font-fallback picks the glyphs up automatically while all regular text keeps your current font. Install on macOS:
+
+```bash
+brew install --cask font-jetbrains-mono-nerd-font
 ```
+
+(any Nerd Font works — see [nerdfonts.com](https://www.nerdfonts.com/font-downloads)). Fully restart the terminal app afterwards so the font fallback cache refreshes. If the icons show as `?` boxes, your fallback didn't pick the font up — set the terminal font to the Nerd Font directly as a last resort.
+
+The default stays `"emoji"`, which needs nothing.
+
+The default nerd set is `md-tools`, `md-robot`, `md-flash`, `md-usb`, tinted coral (Claude brand `#D97757`, 256-color-safe). Each icon can be replaced with any Nerd Font glyph via `callCountIcons` — hex codepoints, all keys optional:
+
+```json
+"callCountIcons": { "tools": "f1323", "agents": "f06a9", "skills": "f0241", "plugins": "f0431" }
+```
+
+Find codepoints on the [Nerd Fonts cheat sheet](https://www.nerdfonts.com/cheat-sheet) (the `nf-md-*` Material Design range is the most reliable through font fallback). Invalid values silently fall back to the defaults.
 
 ### Color schemes
 
