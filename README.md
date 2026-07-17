@@ -216,13 +216,20 @@ Top-level keys:
 
 `"callCountsStyle": "nerd"` swaps the emoji counters for monochrome [Nerd Font](https://www.nerdfonts.com/) glyphs — pick it in the **Call-count icons** step of `/hud-config` (live preview) or set it in config.
 
-Requirement: **a Nerd Font must be installed on the system** — it does *not* have to be your terminal font. The OS font-fallback picks the glyphs up automatically while all regular text keeps your current font. Install on macOS:
+Requirement: **a Nerd Font must be installed on the system** — it does *not* have to be your primary terminal font. Any Nerd Font works ([nerdfonts.com](https://www.nerdfonts.com/font-downloads)):
 
 ```bash
-brew install --cask font-jetbrains-mono-nerd-font
+brew install --cask font-jetbrains-mono-nerd-font     # macOS
+winget install DEVCOM.JetBrainsMonoNerdFont           # Windows
 ```
 
-(any Nerd Font works — see [nerdfonts.com](https://www.nerdfonts.com/font-downloads)). Fully restart the terminal app afterwards so the font fallback cache refreshes. If the icons show as `?` boxes, your fallback didn't pick the font up — set the terminal font to the Nerd Font directly as a last resort.
+How the glyphs reach your terminal differs per platform:
+
+- **macOS** — automatic: system font fallback serves the icons from any installed Nerd Font while regular text keeps your current font. Fully restart the terminal app after installing so the fallback cache refreshes.
+- **Windows Terminal / VS Code** — no automatic fallback for these glyphs; add the Nerd Font to the font *list* instead (main font stays first): `"font": { "face": "Cascadia Mono, JetBrainsMono Nerd Font" }` (Windows Terminal) or `"terminal.integrated.fontFamily": "Consolas, 'JetBrainsMono Nerd Font'"` (VS Code).
+- **Legacy conhost (cmd.exe)** — no fallback chain; the Nerd Font must be set as the console font.
+
+If the icons show as `?` boxes, the font isn't reachable — set the terminal font to the Nerd Font directly as a last resort.
 
 The default stays `"emoji"`, which needs nothing.
 
