@@ -21,7 +21,7 @@ import { join, basename } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, hud-config.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.8.0';
+const VERSION = '0.9.0';
 
 // ─── ANSI ────────────────────────────────────────────────────────────────────
 
@@ -70,6 +70,14 @@ const PALETTES = {
         critical: '\x1b[38;2;255;233;69m',   // cividis(1.00) — #FFE945 bright yellow
         accent:   '\x1b[38;2;77;119;120m',   // cividis(0.40) — #4D7778 teal
     },
+    cyberpunk: {
+        // True-color (24-bit) — requires truecolor terminal support
+        // Neon cyberpunk set — vivid blue / yellow / hot pink / electric purple
+        ok:       '\x1b[38;2;31;111;235m',   // #1F6FEB vivid blue
+        warning:  '\x1b[38;2;254;255;0m',    // #FEFF00 neon yellow
+        critical: '\x1b[38;2;255;30;95m',    // #FF1E5F hot pink
+        accent:   '\x1b[38;2;168;85;247m',   // #A855F7 electric purple
+    },
 };
 
 // Model name colors — loaded from config.modelScheme
@@ -95,7 +103,7 @@ const HUD_DIR = join(homedir(), '.claude', 'hud');
 
 /** Mirrors OMC's 'focused' preset — the current active configuration. */
 const DEFAULT_CONFIG = {
-    colorScheme: 'default',   // 'default' | 'colorBlind' | 'highContrast' | 'viridis' | 'cividis'
+    colorScheme: 'default',   // 'default' | 'colorBlind' | 'highContrast' | 'viridis' | 'cividis' | 'cyberpunk'
     modelScheme: 'orange',    // key of MODEL_COLORS — color of the model name
     elements: {
         // Git info line (above or below main HUD)

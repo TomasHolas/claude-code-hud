@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 // Keep in lockstep with /VERSION, statusline.mjs and setup.mjs — see CLAUDE.md.
-const VERSION = '0.8.0';
+const VERSION = '0.9.0';
 
 const HUD_DIR   = join(homedir(), '.claude', 'hud');
 const CONFIG_PATH = join(HUD_DIR, 'config.json');
@@ -31,6 +31,7 @@ const PALETTES = {
     highContrast: { ok: '\x1b[92m', warning: '\x1b[93m', critical: '\x1b[95m', accent: '\x1b[96m' },
     viridis:      { ok: '\x1b[38;2;53;183;121m',  warning: '\x1b[38;2;173;220;48m', critical: '\x1b[38;2;253;231;37m', accent: '\x1b[38;2;49;104;142m'  },
     cividis:      { ok: '\x1b[38;2;124;162;112m', warning: '\x1b[38;2;186;207;85m', critical: '\x1b[38;2;255;233;69m', accent: '\x1b[38;2;77;119;120m'  },
+    cyberpunk:    { ok: '\x1b[38;2;31;111;235m',  warning: '\x1b[38;2;254;255;0m',  critical: '\x1b[38;2;255;30;95m',  accent: '\x1b[38;2;168;85;247m' },
 };
 
 const SCHEME_LABELS = {
@@ -39,6 +40,7 @@ const SCHEME_LABELS = {
     highContrast: 'High Contrast   ',
     viridis:      'Viridis         ',
     cividis:      'Cividis (NASA)  ',
+    cyberpunk:    'Cyberpunk       ',
 };
 
 // Model name colors — mirror of statusline.mjs MODEL_COLORS

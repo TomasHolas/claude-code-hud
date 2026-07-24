@@ -250,6 +250,7 @@ Find codepoints on the [Nerd Fonts cheat sheet](https://www.nerdfonts.com/cheat-
 | `highContrast` | Bright tier throughout — WCAG AA/AAA |
 | `viridis` | Perceptually uniform, CVD safe — requires truecolor terminal |
 | `cividis` | NASA peer-reviewed CVD safe — requires truecolor terminal |
+| `cyberpunk` | Neon blue / yellow / hot pink / electric purple — requires truecolor terminal |
 
 ### Model scheme (v0.6.0+)
 
