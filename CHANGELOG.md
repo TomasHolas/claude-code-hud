@@ -4,6 +4,15 @@ All notable changes to claude-code-hud are documented here. The format is based
 on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.9.0] - 2026-07-24
+
+### Added
+- **`cyberpunk` color scheme** — a truecolor neon palette: vivid blue (`ok`,
+  `#1F6FEB`), neon yellow (`warning`, `#FEFF00`), hot pink (`critical`,
+  `#FF1E5F`), electric purple (`accent`, `#A855F7`). Selectable in
+  `/hud-config` with a live preview. Requires a truecolor terminal, same as
+  `viridis` and `cividis`. Contributed by [@MarekBezvoda](https://github.com/MarekBezvoda).
+
 ## [0.8.0] - 2026-07-17
 
 ### Added
